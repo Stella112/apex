@@ -7,3 +7,6 @@ export * from "./market.js";
 export * from "./account.js";
 export * from "./sessions.js";
 export * from "./registry.js";
+export * from "./policy.js";
+export * from "./referee.js";
+export * from "./decision-log.js";

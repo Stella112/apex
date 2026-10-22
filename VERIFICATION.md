@@ -62,3 +62,9 @@ Script: `pnpm phase0` (`scripts/phase0-verify.ts`). Result: **13/13 calls OK** (
 21. **NYSE calendar (VERIFIED, nyse.com/trade/hours-calendars fetched 2026-10-22):** core session 09:30–16:00 ET; 2026 remaining: Thu Nov 26 closed, Fri Nov 27 13:00 early close, Thu Dec 24 13:00 early close, Fri Dec 25 closed — matches CLAUDE.md §6.1. 2027 holidays also loaded. Nasdaq is **assumed** to share the calendar.
 22. **Assumed:** CME Globex hours (no CME holidays modeled); SP500/NAS100 follow the US cash session; listing venue (Nasdaq vs NYSE) per equity is informational only.
 23. Dev dependency `@types/luxon` added (types only).
+
+## Phase 2 — 2026-10-22 ~19:46 UTC
+24. Referee is pure and uses only policy + context numbers; no Strike calls. Freshness limits from `config/thresholds.ts` (CLAUDE.md §6.2). Trigger-direction rule for R11 from CLAUDE.md §4.5 / trade-api.yaml.
+25. **Assumed:** stop orders validated against both LOT_SIZE and MARKET_LOT_SIZE; MIN_NOTIONAL also applied to reduce-only orders (conservative — whether Strike exempts reduce-only from MIN_NOTIONAL is undocumented).
+26. **Open interpretation (B3):** R4 concentration denominator.
+27. Decision log: hash = sha256(prevHash + canonicalJSON(entry sans hash/sig)), Ed25519 over the 32 hash bytes with a separate key (`LOG_SIGNING_KEY` or generated `keys/log_signing.key`).

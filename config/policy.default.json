@@ -1,0 +1,12 @@
+{
+  "maxLeverage": 5,
+  "maxPositionNotionalUsd": "500",
+  "maxPortfolioNotionalUsd": "2000",
+  "maxSingleMarketConcentrationPct": "40",
+  "minLiquidationDistancePct": "15",
+  "allowedClasses": ["crypto", "equity", "index", "commodity"],
+  "blockedSymbols": [],
+  "weekend": { "maxLeverageWhenUnderlyingClosed": 3, "blockNewPositionsWhenUnderlyingClosed": false },
+  "maxActionsPerHour": 10,
+  "requireHumanConfirm": true
+}
