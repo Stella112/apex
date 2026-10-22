@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Credit } from "./Credit";
-import { type CircuitReport, type LogEntry, type MarketGapStats, type MarketRecord, type PositionGapRisk, type Proposal, type Source, type Status, type Verdict, api } from "./api";
+import { type CircuitReport, type FairValue, type LogEntry, type MarketGapStats, type MarketRecord, type PositionGapRisk, type Proposal, type Source, type Status, type Verdict, api } from "./api";
 
 type Page = "radar" | "circuit" | "positions" | "credit" | "log";
 const DISCLAIMER = "Numbers are estimates from live Strike data, not guarantees, and not financial advice. Limits are enforced by Strike key permissions and the Apex referee, not by an on-chain contract.";
@@ -318,13 +318,14 @@ function Positions({ source, setSource, status }: { source: Source; setSource: (
             <h2>Closed-session gap statistics <Lbl l="ESTIMATE" /></h2>
             <div className="tablewrap">
               <table>
-                <thead><tr><th>Market</th><th>Underlying</th><th className="num">Hours to open</th><th className="num">Window h</th><th>Method</th><th className="num">Samples</th><th className="num">σ 1h</th><th className="num">Worst long</th><th className="num">P(−5%)</th><th className="num">P(−10%)</th><th>Flags</th></tr></thead>
+                <thead><tr><th>Market</th><th>Underlying</th><th className="num">Hours to open</th><th className="num">Window h</th><th>Method</th><th className="num">Samples</th><th className="num">σ 1h</th><th className="num">Worst long</th><th className="num">P(−5%)</th><th className="num">P(−10%)</th><th>Fair value <span className="lbl">ESTIMATE</span></th><th>Flags</th></tr></thead>
                 <tbody>
-                  {w.data.markets.map((m: MarketGapStats) => (
+                  {w.data.markets.map((m: MarketGapStats & { fairValue: FairValue | null }) => (
                     <tr key={m.symbol}>
                       <td><b>{m.symbol}</b></td><td><span className={`chip ${m.underlying}`}>{m.underlying}</span></td>
                       <td className="num">{m.hoursUntilNextOpen ?? "—"}</td><td className="num">{m.windowHours ?? "—"}</td><td>{m.method}</td><td className="num">{m.samples}</td>
                       <td className="num">{pct(m.sigmaHourlyPct, 3)}</td><td className="num">{pct(m.worstAdverseLongPct)}</td><td className="num">{pct(m.pMove5Long, 1)}</td><td className="num">{pct(m.pMove10Long, 1)}</td>
+                      <td className="muted" title={m.fairValue?.note ?? ""}>{m.fairValue ? (m.fairValue.status === "OK" ? `${fmt(m.fairValue.implied)} ±${m.fairValue.bandHalfWidthPct}% (mark ${Number(m.fairValue.deviationPct) >= 0 ? "+" : ""}${m.fairValue.deviationPct}%)` : m.fairValue.status.replace(/_/g, " ").toLowerCase()) : "—"}</td>
                       <td>{m.flags.map((f) => <span key={f} className="chip flag">{f}</span>)}</td>
                     </tr>
                   ))}

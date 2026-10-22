@@ -57,6 +57,7 @@ const routes: Array<[string, RegExp, Handler]> = [
   ["GET", /^\/api\/log$/, (u) => ({ entries: apex.decisionLog(Number(u.searchParams.get("limit") ?? 100)).reverse() })],
   ["GET", /^\/api\/log\/verify$/, () => apex.verifyLog()],
   ["GET", /^\/api\/policy$/, () => apex.getPolicy()],
+  ["GET", /^\/api\/fairvalue\/([A-Za-z0-9-]+)$/, (_u, _b, m) => apex.fairValue(m[1]!)],
   ["POST", /^\/api\/credit\/health$/, (_u, b) => apex.creditLineHealth(b as never)],
   ["POST", /^\/api\/credit\/grid$/, (_u, b) => apex.creditStressGrid(b as never)],
   ["POST", /^\/api\/policy$/, (_u, b) => apex.setPolicy(b)],

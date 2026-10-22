@@ -17,7 +17,7 @@ export const api = {
   markets: () => j<{ markets: MarketRecord[]; label: string }>("/api/markets"),
   simulate: (b: Record<string, unknown>) => post<CircuitReport>("/api/simulate", b),
   positions: (s: Source) => j<{ label: string; positions: PositionGapRisk[]; asOf: string }>(`/api/positions?source=${s}`),
-  weekend: (s: Source) => j<{ markets: MarketGapStats[]; positions: PositionGapRisk[]; positionsLabel: string; asOf: string; logSeq: number }>(`/api/weekend?source=${s}`),
+  weekend: (s: Source) => j<{ markets: Array<MarketGapStats & { fairValue: FairValue | null }>; positions: PositionGapRisk[]; positionsLabel: string; asOf: string; logSeq: number }>(`/api/weekend?source=${s}`),
   proposeProtection: (symbol: string, source: Source, kind?: string) => post<{ proposals: Proposal[]; note: string; position: PositionGapRisk }>("/api/propose/protection", { symbol, source, kind }),
   proposeTrade: (b: Record<string, unknown>) => post<{ proposal: Proposal; circuit: CircuitReport }>("/api/propose/trade", b),
   execute: (proposalId: string) => post<ExecutionResult>("/api/execute", { proposalId, confirm: true }),
@@ -28,6 +28,7 @@ export const api = {
   creditGrid: (b: Record<string, string>) => post<CreditGrid>("/api/credit/grid", b),
 };
 
+export type FairValue = import("@apex/core").FairValue;
 export type CreditHealth = Awaited<ReturnType<import("@apex/core").Apex["creditLineHealth"]>>;
 export type CreditGrid = Awaited<ReturnType<import("@apex/core").Apex["creditStressGrid"]>>;
 

@@ -1,6 +1,7 @@
 // Apex service: one place that wires client, registry, Circuit, Shield, referee, proposals,
 // PAPER/LIVE execution and the decision log. Used by the MCP server and the dashboard API.
 import { CREDIT_SHARED, PROPOSAL_TTL_MS, RECONCILE_TIMEOUT_MS, type SessionEntry } from "@apex/config";
+import { type FairValue, fairValue, referenceFor } from "./fairvalue.js";
 import { boundaryPrice, completionTargets, conversionPrice, fixAmounts, health, paramsFrom, stressGrid } from "./credit.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
@@ -299,9 +300,10 @@ export class Apex {
   async weekendRiskReport(source: PositionSource = this.defaultSource()) {
     const ms = await this.markets();
     const tradfi = ms.filter((m) => m.class !== "crypto");
-    const markets: MarketGapStats[] = await mapLimit(tradfi, 8, async (m) => {
+    const markets: Array<MarketGapStats & { fairValue: FairValue | null }> = await mapLimit(tradfi, 8, async (m) => {
       const [k, depth] = await Promise.all([loadMarkHistory(this.client, m.symbol, 3, this.now()), getDepth(this.client, m.symbol).catch(() => null)]);
-      return marketGapStats(m, k, depth?.data ?? null, this.now()).stats;
+      const fv = m.class === "equity" || m.class === "index" ? await this.fairValue(m.symbol).catch(() => null) : null;
+      return { ...marketGapStats(m, k, depth?.data ?? null, this.now()).stats, fairValue: fv };
     });
     const positions = await this.positionsWithRisk(source);
     const entry = this.log.append("weekend_report", "scenario", {
@@ -553,6 +555,20 @@ export class Apex {
     if (!Number.isSafeInteger(orderId)) throw new Error("order_id must be an integer engine order ID");
     const sent = await cancelOrder(this.client, a.symbol, orderId);
     return { status: "cancel sequenced (Strike)", details: sent.data };
+  }
+
+  // ── fair value (P1) ────────────────────────────────────────────────────────
+  async fairValue(symbol: string): Promise<FairValue> {
+    const ms = await this.markets();
+    const m = ms.find((x) => x.symbol === symbol);
+    if (!m) throw new Error("Unknown symbol " + symbol);
+    const ref = referenceFor(symbol, m.class);
+    const refM = ref ? ms.find((x) => x.symbol === ref) : undefined;
+    const [k, refK] = await Promise.all([
+      loadMarkHistory(this.client, symbol, 3, this.now()),
+      ref ? loadMarkHistory(this.client, ref, 3, this.now()) : Promise.resolve([]),
+    ]);
+    return fairValue(symbol, m.class, m.session, m.stats.markPrice, refM?.stats.markPrice ?? null, k, refK, this.now());
   }
 
   // ── credit (P1) ────────────────────────────────────────────────────────────

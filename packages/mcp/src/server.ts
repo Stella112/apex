@@ -266,6 +266,19 @@ export function createServer(apex: Apex): McpServer {
     return reply(r.ok ? `Decision log verified: ${r.entries} entries, chain and signatures intact (key ${r.publicKey.slice(0, 16)}…).` : `Decision log verification FAILED at seq ${r.firstBadSeq}: ${r.error}`, r);
   }));
 
+  server.registerTool("get_fair_value", {
+    title: "Fair-value band",
+    description: "For a stock or index perp while its underlying market is closed: implied price from the last mark at the close and the reference index perp's move since (β from weekday 1h returns), with a ±2σ band. Shows β, R² and samples; R² < 0.2 means no reliable band. ESTIMATE. " + DISCLAIMER,
+    inputSchema: { symbol: z.string() },
+    annotations: { readOnlyHint: true },
+  }, wrap(async ({ symbol }: { symbol: string }) => {
+    const f = await apex.fairValue(symbol);
+    const s = f.status === "OK"
+      ? symbol + " fair value (ESTIMATE): implied " + f.implied + ", band " + f.bandLow + "–" + f.bandHigh + " (±" + f.bandHalfWidthPct + "%), mark " + f.mark + " is " + f.deviationPct + "% from implied. " + f.note + "."
+      : symbol + " fair value: " + f.status + " — " + f.note + (f.beta ? " (β " + f.beta + ", R² " + f.r2 + ", n=" + f.samples + ")" : "") + ".";
+    return reply(s + " " + DISCLAIMER, { mode: apex.mode, ...f });
+  }));
+
   const creditShape = {
     asset: z.string().default("ADA").describe("Collateral asset id from /v2/credit/settings, e.g. ADA"),
     collateralUnits: decStr.describe("q: pledged collateral units (user-entered)"),

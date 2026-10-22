@@ -1,0 +1,17 @@
+AAOI-USD     OK                β 3.447 R² 0.319 n=1186    implied 68.043467 band 66.71781663–69.36911736 (±1.948%) mark 67.65316846 dev -0.574%
+COIN-USD     NO_RELIABLE_BAND  β 1.558 R² 0.154 n=987     R² 0.154 < 0.2: no reliable band
+CRCL-USD     NO_RELIABLE_BAND  β 1.951 R² 0.163 n=933     R² 0.163 < 0.2: no reliable band
+CXMT-USD     NO_SESSION        β - R² - n=0               no cited underlying session or no reference index
+DRAM-USD     NO_SESSION        β - R² - n=0               no cited underlying session or no reference index
+GOOGL-USD    NO_RELIABLE_BAND  β 0.680 R² 0.196 n=1155    R² 0.196 < 0.2: no reliable band
+MINIMAX-USD  NO_SESSION        β - R² - n=0               no cited underlying session or no reference index
+MU-USD       OK                β 2.909 R² 0.527 n=1653    implied 856.5594193 band 845.9467764–867.1720622 (±1.239%) mark 855.97 dev -0.069%
+NAS100-USD   OK                β 1.430 R² 0.774 n=1173    implied 28983.1221 band 28929.68262–29036.56159 (±0.184%) mark 28960.60692902 dev -0.078%
+NVDA-USD     OK                β 1.306 R² 0.480 n=1653    implied 212.2415983 band 210.9450865–213.5381101 (±0.611%) mark 212.60 dev 0.169%
+SKHYNIX-USD  NO_SESSION        β - R² - n=0               no cited underlying session or no reference index
+SNDK-USD     OK                β 3.585 R² 0.418 n=1653    implied 1259.153868 band 1235.208774–1283.098962 (±1.902%) mark 1251.66313824 dev -0.595%
+SP500-USD    OK                β 0.541 R² 0.774 n=1173    implied 7659.431537 band 7650.742936–7668.120139 (±0.113%) mark 7662.82925741 dev 0.044%
+SPCX-USD     NO_SESSION        β - R² - n=0               no cited underlying session or no reference index
+TSLA-USD     OK                β 1.082 R² 0.234 n=1540    implied 374.8300875 band 371.5626555–378.0975194 (±0.872%) mark 373.62660648 dev -0.321%
+UNITREE-USD  NO_SESSION        β - R² - n=0               no cited underlying session or no reference index
+ZHIPU-USD    NO_SESSION        β - R² - n=0               no cited underlying session or no reference index
