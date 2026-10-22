@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "apex-dashboard", "runtimeExecutable": "node", "runtimeArgs": ["packages/api/dist/index.js"], "port": 8787 }
+  ]
+}

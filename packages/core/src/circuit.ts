@@ -255,6 +255,11 @@ export function runCircuit(input: CircuitInput, data: CircuitData, policy: Polic
     }
   }
 
+  const held = data.account?.positions.find((p) => p.symbol === input.symbol && !dec(p.size).isZero());
+  if (held && held.leverage !== input.leverage) {
+    exchangeWarnings.push(`Existing ${input.symbol} position (${data.account!.source}) uses ${held.leverage}x; Strike applies the position's leverage, so the liquidation estimate uses ${held.leverage}x for the combined position`);
+  }
+
   // Liquidation.
   const signed = input.side === "buy" ? size : size.neg();
   const liqRes = entry && size.gt(0) ? estimateLiquidation(data, input.symbol, signed, entry, input.leverage) : { error: "no size or price" };
