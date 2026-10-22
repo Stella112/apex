@@ -97,7 +97,7 @@ export function exposure(action: Extract<Action, { kind: "open" }>, ctx: Referee
 
 /**
  * Concentration % for R4. Denominator = max(resulting portfolio notional, maxPortfolioNotionalUsd),
- * i.e. the share of the allowed book. PENDING Maris decision (BLOCKERS B3): the literal reading
+ * i.e. the share of the allowed book. Decided (BLOCKERS B3): the literal reading
  * (symbol ÷ resulting portfolio) makes every first trade 100% and always blocks.
  */
 export function concentrationPct(symbolNotional: Dec, portfolioNotional: Dec, policy: Policy): Dec {
