@@ -16,6 +16,14 @@ pnpm dashboard
 
 Connect Claude Desktop to the stdio server (README → *Connect Claude Desktop*). Keep the dashboard open at <http://127.0.0.1:8787>. The mode badge (top right) reads **PAPER** unless `APEX_MODE=live` and keys are set.
 
+## Scene 0 — Overview (dashboard, LIVE)
+
+Open the dashboard on **Overview**. It shows:
+- the live Strike connection;
+- Apex's liquidation prices matching Strike's on real positions (33/33);
+- the $1,000 NVDA 10x trade being blocked, with its compliant alternative;
+- weekend gap risk for every TradFi market.
+
 ## Scene 1 — Weekend risk (Claude, LIVE data, PAPER positions)
 
 > "What's my weekend risk across Strike? Use my paper account."

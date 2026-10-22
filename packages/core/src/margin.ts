@@ -120,6 +120,6 @@ export function compareLiquidations(computed: Array<{ symbol: string; lp: Dec }>
       return { symbol: c.symbol, computed: c.lp.toString(), served: servedLp.toString(), diffPct: null, match: servedLp.isZero() && c.lp.isZero() };
     }
     const diff = c.lp.sub(servedLp).abs().div(servedLp).mul(100);
-    return { symbol: c.symbol, computed: c.lp.toSignificantDigits(12).toString(), served: servedLp.toSignificantDigits(12).toString(), diffPct: diff.toFixed(4), match: diff.lte(dec(tolerancePct)) };
+    return { symbol: c.symbol, computed: c.lp.toSignificantDigits(12).toString(), served: servedLp.toSignificantDigits(12).toString(), diffPct: diff.toSignificantDigits(3).toString(), match: diff.lte(dec(tolerancePct)) };
   });
 }

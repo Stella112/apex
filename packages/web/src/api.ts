@@ -10,6 +10,7 @@ async function j<T>(path: string, init?: RequestInit): Promise<T> {
 const post = <T,>(path: string, b: unknown) => j<T>(path, { method: "POST", body: JSON.stringify(b) });
 
 export type Source = "own" | "paper" | "vault";
+export type { Status as ApexStatus };
 export interface Status { mode: "paper" | "live"; apexMode: string; hasKeys: boolean; env: string; defaultSource: Source; vaultId: string | null }
 
 export const api = {
@@ -25,12 +26,17 @@ export const api = {
   verify: () => j<{ ok: boolean; entries: number; firstBadSeq?: number; error?: string; publicKey: string }>("/api/log/verify"),
   policy: () => j<Policy>("/api/policy"),
   vault: () => j<VaultStatus>("/api/vault"),
+  liqCheck: () => j<LiqCheck>("/api/liq-check"),
+  gapStats: () => j<GapRow[]>("/api/gapstats"),
+  history: (symbol: string) => j<{ symbol: string; closes: string[] }>(`/api/history/${symbol}`),
   vaultDecisions: () => j<{ decisions: LogEntry[] }>("/api/vault/decisions"),
   vaultTick: () => post<unknown>("/api/vault/tick", {}),
   creditHealth: (b: Record<string, string>) => post<CreditHealth>("/api/credit/health", b),
   creditGrid: (b: Record<string, string>) => post<CreditGrid>("/api/credit/grid", b),
 };
 
+export type GapRow = MarketGapStats & { fairValue: FairValue | null };
+export interface LiqCheck { label: string; source: string; total: number; matched: number; maxDiffPct: string; checks: Array<{ symbol: string; computed: string; served: string; diffPct: string | null; match: boolean }>; asOf: string }
 export type VaultStatus = Awaited<ReturnType<import("@apex/core").Apex["vaultStatus"]>>;
 export type FairValue = import("@apex/core").FairValue;
 export type CreditHealth = Awaited<ReturnType<import("@apex/core").Apex["creditLineHealth"]>>;

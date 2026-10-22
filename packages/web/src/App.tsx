@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Credit } from "./Credit";
+import { Overview } from "./Overview";
 import { Vault } from "./Vault";
 import { type CircuitReport, type FairValue, type LogEntry, type MarketGapStats, type MarketRecord, type PositionGapRisk, type Proposal, type Source, type Status, type Verdict, api } from "./api";
 
-type Page = "radar" | "circuit" | "positions" | "credit" | "vault" | "log";
+type Page = "overview" | "radar" | "circuit" | "positions" | "credit" | "vault" | "log";
 const DISCLAIMER = "Numbers are estimates from live Strike data, not guarantees, and not financial advice. Limits are enforced by Strike key permissions and the Apex referee, not by an on-chain contract.";
 
 function Logo() {
@@ -49,6 +50,10 @@ function useAsync<T>(fn: () => Promise<T>, deps: unknown[]) {
 function Radar() {
   const m = useAsync(() => api.markets(), []);
   const [cls, setCls] = useState<string>("all");
+  useEffect(() => {
+    const t = setInterval(m.reload, 15_000);
+    return () => clearInterval(t);
+  }, [m.reload]);
   const rows = useMemo(() => (m.data?.markets ?? []).filter((x) => cls === "all" || x.class === cls), [m.data, cls]);
   const counts = useMemo(() => {
     const ms = m.data?.markets ?? [];
@@ -70,12 +75,13 @@ function Radar() {
             <button key={c} className={cls === c ? "on" : ""} onClick={() => setCls(c)}>{c}</button>
           ))}
           <span className="spacer" />
+          <span className="muted" style={{ fontSize: 12, alignSelf: "center" }}>auto-refresh 15 s</span>
           <button onClick={m.reload}>{m.loading ? "Refreshing…" : "Refresh"}</button>
         </div>
         {m.error && <p className="err">{m.error}</p>}
         <div className="tablewrap">
           <table>
-            <thead><tr><th>Market</th><th>Class</th><th>Perp</th><th>Underlying</th><th>Next open</th><th className="num">Mark</th><th className="num">Funding / h</th><th className="num">Open interest $</th><th className="num">24h vol $</th><th>Notes</th></tr></thead>
+            <thead><tr><th>Market</th><th>Class</th><th>Perp</th><th>Underlying</th><th>Next open</th><th className="num">Mark</th><th className="num">24h</th><th className="num">Funding / h</th><th className="num">Open interest $</th><th className="num">24h vol $</th><th>Notes</th></tr></thead>
             <tbody>
               {rows.map((x: MarketRecord) => (
                 <tr key={x.symbol}>
@@ -85,6 +91,7 @@ function Radar() {
                   <td><span className={`chip ${x.sessionState.underlying}`}>{x.sessionState.underlying}</span></td>
                   <td className="muted">{x.class === "crypto" ? "24/7" : when(x.sessionState.nextOpen)}</td>
                   <td className="num">{fmt(x.stats.markPrice)}</td>
+                  <td className={`num chg ${Number(x.stats.priceChangePct24h) >= 0 ? "up" : "dn"}`}>{Number(x.stats.priceChangePct24h) >= 0 ? "+" : ""}{Number(x.stats.priceChangePct24h).toFixed(2)}%</td>
                   <td className="num">{(Number(x.stats.fundingRateHourly) * 100).toFixed(5)}%</td>
                   <td className="num">{fmt(x.stats.openInterest, 0)}</td>
                   <td className="num">{fmt(x.stats.volume24h, 0)}</td>
@@ -163,6 +170,7 @@ function CircuitReportView({ r, title }: { r: CircuitReport; title: string }) {
             <dt>Underlying</dt><dd><span className={`chip ${r.weekend.underlying}`}>{r.weekend.underlying}</span></dd>
             <dt>Hours to open</dt><dd>{r.weekend.hoursUntilNextOpen.value ?? "—"}</dd>
             <dt>Gap method</dt><dd>{r.weekend.gap ? `${r.weekend.gap.method} (n=${r.weekend.gap.samples})` : "crypto — n/a"}</dd>
+            <dt>p_gap for this trade</dt><dd>{r.weekend.gap?.pGap != null ? <><span className={`band ${r.weekend.gap.band}`}>{r.weekend.gap.band}</span> {r.weekend.gap.pGap}%</> : "—"}</dd>
           </dl>
           {r.riskReward && <p className="basis">R/R: loss ${fmt(r.riskReward.lossUsd.value)} / gain ${fmt(r.riskReward.gainUsd.value)} = {fmt(r.riskReward.ratio.value)}</p>}
         </div>
@@ -171,8 +179,9 @@ function CircuitReportView({ r, title }: { r: CircuitReport; title: string }) {
   );
 }
 
-function Circuit({ source }: { source: Source }) {
-  const [f, setF] = useState({ symbol: "NVDA-USD", side: "buy", notionalUsd: "1000", leverage: "10", orderType: "market", stopLoss: "", takeProfit: "" });
+function Circuit({ source: defaultSource, status }: { source: Source; status: Status | null }) {
+  const [f, setF] = useState({ symbol: "NVDA-USD", side: "buy", notionalUsd: "1000", leverage: "10", orderType: "market", stopLoss: "", takeProfit: "", account: "none" });
+  const source = f.account === "default" ? defaultSource : f.account;
   const [r, setR] = useState<CircuitReport | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -197,6 +206,7 @@ function Circuit({ source }: { source: Source }) {
       <div className="grid cols-2">
         <form className="card stack" onSubmit={run}>
           <h2>Trade</h2>
+          <label>Account context<select value={f.account} onChange={set("account")}><option value="none">Fresh trade (no existing positions)</option><option value="paper">Apex paper account</option>{status?.hasKeys && <option value="own">My Strike account</option>}</select></label>
           <label>Market<select value={f.symbol} onChange={set("symbol")}>{(markets.data?.markets ?? [{ symbol: "NVDA-USD" } as MarketRecord]).map((m) => <option key={m.symbol}>{m.symbol}</option>)}</select></label>
           <div className="row2">
             <label>Side<select value={f.side} onChange={set("side")}><option value="buy">Long (buy)</option><option value="sell">Short (sell)</option></select></label>
@@ -388,7 +398,7 @@ function summarize(e: LogEntry): string {
 
 // ── App ──────────────────────────────────────────────────────────────────────
 export function App() {
-  const [page, setPage] = useState<Page>(() => (location.hash.slice(1) as Page) || "radar");
+  const [page, setPage] = useState<Page>(() => (location.hash.slice(1) as Page) || "overview");
   const [status, setStatus] = useState<Status | null>(null);
   const [source, setSource] = useState<Source>("paper");
   useEffect(() => {
@@ -396,11 +406,11 @@ export function App() {
   }, []);
   useEffect(() => { location.hash = page; }, [page]);
   useEffect(() => {
-    const on = () => setPage((location.hash.slice(1) as Page) || "radar");
+    const on = () => setPage((location.hash.slice(1) as Page) || "overview");
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
   }, []);
-  const tabs: Array<[Page, string]> = [["radar", "Markets"], ["circuit", "Circuit"], ["positions", "Positions"], ["credit", "Credit"], ["vault", "Vault"], ["log", "Decision log"]];
+  const tabs: Array<[Page, string]> = [["overview", "Overview"], ["radar", "Markets"], ["circuit", "Circuit"], ["positions", "Positions"], ["credit", "Credit"], ["vault", "Vault"], ["log", "Decision log"]];
   return (
     <>
       <header className="top">
@@ -413,8 +423,9 @@ export function App() {
         </div>
       </header>
       <main>
+        {page === "overview" && <Overview status={status} go={(p) => setPage(p as Page)} />}
         {page === "radar" && <Radar />}
-        {page === "circuit" && <Circuit source={source} />}
+        {page === "circuit" && <Circuit source={source} status={status} />}
         {page === "positions" && <Positions source={source} setSource={setSource} status={status} />}
         {page === "credit" && <Credit />}
         {page === "vault" && <Vault />}

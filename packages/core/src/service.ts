@@ -25,7 +25,7 @@ import { DEFAULT_POLICY, type Policy, PolicySchema, mergePolicy } from "./policy
 import { type Action, type Mode, type RefereeContext, type Verdict, evaluate, isReduction } from "./referee.js";
 import { MarketRegistry, type MarketRecord, type RegistryClass } from "./registry.js";
 import type { MarketInfo } from "./schemas.js";
-import { type Flag, type GapDistribution, flagsFor, gapDistribution } from "./shield.js";
+import { type Flag, type GapDistribution, band, flagsFor, gapDistribution, pGap } from "./shield.js";
 import { type MarketGapStats, type PositionGapRisk, type PositionInputView, loadMarkHistory, marketGapStats, positionGapRisk } from "./shield-report.js";
 import { parseApiWalletKey } from "./signing.js";
 import { addIsoMargin, cancelOrder, placeOrder, reconcileIsoMargin, reconcileOrder } from "./trading.js";
@@ -300,19 +300,35 @@ export class Apex {
     return { label: views.label, positions: out, asOf: new Date(this.now()).toISOString() };
   }
 
-  async weekendRiskReport(source: PositionSource = this.defaultSource()) {
+  private gapStatsCache: { at: number; rows: Array<MarketGapStats & { fairValue: FairValue | null }> } | undefined;
+
+  /** Closed-session statistics for every non-crypto market (cached 60 s; history is cached 10 min). */
+  async marketGapStatsAll(): Promise<Array<MarketGapStats & { fairValue: FairValue | null }>> {
+    if (this.gapStatsCache && this.now() - this.gapStatsCache.at < 60_000) return this.gapStatsCache.rows;
     const ms = await this.markets();
     const tradfi = ms.filter((m) => m.class !== "crypto");
-    const markets: Array<MarketGapStats & { fairValue: FairValue | null }> = await mapLimit(tradfi, 8, async (m) => {
+    const rows: Array<MarketGapStats & { fairValue: FairValue | null }> = await mapLimit(tradfi, 8, async (m) => {
       const [k, depth] = await Promise.all([loadMarkHistory(this.client, m.symbol, 3, this.now()), getDepth(this.client, m.symbol).catch(() => null)]);
       const fv = m.class === "equity" || m.class === "index" ? await this.fairValue(m.symbol).catch(() => null) : null;
       return { ...marketGapStats(m, k, depth?.data ?? null, this.now()).stats, fairValue: fv };
     });
-    const positions = await this.positionsWithRisk(source);
-    const entry = this.log.append("weekend_report", "scenario", {
+    this.gapStatsCache = { at: this.now(), rows };
+    return rows;
+  }
+
+  async weekendRiskReport(source: PositionSource = this.defaultSource(), opts: { log?: boolean } = {}) {
+    const [markets, positions] = await Promise.all([this.marketGapStatsAll(), this.positionsWithRisk(source)]);
+    const entry = opts.log === false ? null : this.log.append("weekend_report", "scenario", {
       source, positions: positions.positions.map((p) => ({ symbol: p.symbol, band: p.band, pGapPct: p.pGapPct, method: p.method, samples: p.samples })),
     });
-    return { asOf: new Date(this.now()).toISOString(), mode: this.mode, positionsLabel: positions.label, markets, positions: positions.positions, logSeq: entry.seq };
+    return { asOf: new Date(this.now()).toISOString(), mode: this.mode, positionsLabel: positions.label, markets, positions: positions.positions, logSeq: entry?.seq ?? null };
+  }
+
+  /** Last `hours` 1h mark closes (from the cached history) for sparklines. LIVE. */
+  async markHistory(symbol: string, hours = 96): Promise<{ symbol: string; closes: string[]; from: number | null; to: number | null }> {
+    const k = await loadMarkHistory(this.client, symbol, 3, this.now());
+    const tail = k.slice(-hours);
+    return { symbol, closes: tail.map((x) => x.close), from: tail[0]?.openTime ?? null, to: tail.at(-1)?.closeTime ?? null };
   }
 
   async orderHistory(source: PositionSource = this.defaultSource(), symbol?: string) {
@@ -326,7 +342,8 @@ export class Apex {
   }
 
   // ── Circuit ────────────────────────────────────────────────────────────────
-  private async circuitData(symbol: string, source: PositionSource): Promise<CircuitData> {
+  /** source "none" = no account: Circuit models the trade on its own (isolated-equivalent). */
+  private async circuitData(symbol: string, source: PositionSource | "none"): Promise<CircuitData> {
     const m = await this.market(symbol);
     let gap: CircuitData["gap"];
     if (m.class !== "crypto") {
@@ -334,22 +351,34 @@ export class Apex {
       gap = { pGap: null, band: "N/A", method: dist.method, samples: dist.samples };
     }
     // Account read last so its age at evaluation stays inside the 15 s freshness limit.
-    const views = await this.positionViews(source).catch(() => null);
-    const account = views ? this.accountView(views, source) : null;
+    const views = source === "none" ? null : await this.positionViews(source).catch(() => null);
+    const account = views && source !== "none" ? this.accountView(views, source) : null;
     return loadCircuitData(this.client, this.registry, symbol, {
       mode: this.mode, liveEnvEnabled: this.apexMode === "live", account, actionsInLastHour: this.actionsInLastHour(), now: this.now, ...(gap ? { gap } : {}),
     });
   }
 
-  async simulateTrade(input: CircuitInput, source: PositionSource = this.defaultSource()): Promise<CircuitReport> {
+  async simulateTrade(input: CircuitInput, source: PositionSource | "none" = this.defaultSource(), opts: { log?: boolean } = {}): Promise<CircuitReport> {
     await this.market(input.symbol);
     const data = await this.circuitData(input.symbol, source);
     const report = runCircuit(input, data, this.getPolicy());
-    this.log.append("simulation", "scenario", {
+    await this.attachTradeGap(report);
+    if (report.alternativeReport) await this.attachTradeGap(report.alternativeReport);
+    if (opts.log !== false) this.log.append("simulation", "scenario", {
       input, decision: report.verdict.decision, violations: report.verdict.violations.map((v) => v.id),
       alternative: report.verdict.alternative ?? null,
     });
     return report;
+  }
+
+  /** Weekend Shield p_gap for the simulated position: P(adverse closed-session move ≥ its liquidation distance). */
+  private async attachTradeGap(r: Omit<CircuitReport, "alternativeReport">): Promise<void> {
+    const m = await this.market(r.symbol);
+    if (m.class === "crypto") return;
+    const { dist } = await this.dist(m);
+    const d = r.liquidation.distancePct.value === null ? null : Number(r.liquidation.distancePct.value) / 100;
+    const p = d === null ? (r.liquidation.price.value?.startsWith("0") ? 0 : null) : pGap(dist, r.side === "buy" ? "long" : "short", d);
+    r.weekend.gap = { pGap: p === null ? null : (p * 100).toFixed(1), band: band(p), method: dist.method, samples: dist.samples };
   }
 
   async stressTestPosition(symbol: string, movesPct: string[], source: PositionSource = this.defaultSource()) {

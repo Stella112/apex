@@ -47,10 +47,23 @@ const routes: Array<[string, RegExp, Handler]> = [
   ["GET", /^\/api\/status$/, () => ({ mode: apex.mode, apexMode: apex.apexMode, hasKeys: apex.hasKeys, env: apex.client.env, defaultSource: apex.defaultSource(), vaultId: apex.vaultId ?? null })],
   ["GET", /^\/api\/markets$/, async () => ({ mode: apex.mode, label: "LIVE", markets: await apex.listMarkets() })],
   ["GET", /^\/api\/market\/([A-Za-z0-9-]+)$/, (_u, _b, m) => apex.getMarket(m[1]!)],
-  ["POST", /^\/api\/simulate$/, (u, b) => apex.simulateTrade(b as never, (b.source as PositionSource) ?? src(u))],
+  ["POST", /^\/api\/simulate$/, (u, b) => apex.simulateTrade(b as never, (b.source as PositionSource) ?? src(u), { log: b.log !== false })],
   ["GET", /^\/api\/positions$/, (u) => apex.positionsWithRisk(src(u))],
   ["GET", /^\/api\/account$/, (u) => apex.accountSummary(src(u))],
-  ["GET", /^\/api\/weekend$/, (u) => apex.weekendRiskReport(src(u))],
+  ["GET", /^\/api\/weekend$/, (u) => apex.weekendRiskReport(src(u), { log: false })],
+  ["GET", /^\/api\/gapstats$/, () => apex.marketGapStatsAll()],
+  ["GET", /^\/api\/history\/([A-Za-z0-9-]+)$/, (_u, _b, m) => apex.markHistory(m[1]!)],
+  ["GET", /^\/api\/liq-check$/, async () => {
+    // Apex's liquidation formula vs Strike's own liquidation_price (own account with keys, else the public SLP vault).
+    const source = apex.hasKeys ? "own" : "vault";
+    const checks = await apex.validateLiquidations(source);
+    const priced = checks.filter((c) => c.diffPct !== null);
+    return {
+      label: "LIVE", source: source === "own" ? "your Strike account" : "SLP vault (public, read-only)",
+      total: checks.length, matched: checks.filter((c) => c.match).length,
+      maxDiffPct: priced.reduce((m, c) => Math.max(m, Number(c.diffPct)), 0).toFixed(4), checks, asOf: new Date().toISOString(),
+    };
+  }],
   ["POST", /^\/api\/propose\/protection$/, (u, b) => apex.proposeProtection(String(b.symbol), b.kind as never, (b.source as PositionSource) ?? src(u))],
   ["POST", /^\/api\/propose\/trade$/, (u, b) => apex.proposeTrade(b as never, (b.source as PositionSource) ?? src(u))],
   ["POST", /^\/api\/execute$/, (_u, b) => apex.executeProposal(String(b.proposalId), b.confirm === true)],
@@ -88,6 +101,6 @@ createServer(async (req, res) => {
   }
 }).listen(PORT, "127.0.0.1", () => {
   // Warm the registry and 1h mark history so the first Circuit/Shield request is fast.
-  apex.weekendRiskReport("paper").catch((e: unknown) => console.error("warmup failed:", e instanceof Error ? e.message : e));
+  apex.weekendRiskReport("paper", { log: false }).catch((e: unknown) => console.error("warmup failed:", e instanceof Error ? e.message : e));
   console.error(`apex api + dashboard on http://127.0.0.1:${PORT} (mode ${apex.mode}, keys ${apex.hasKeys ? "present" : "absent"})`);
 });

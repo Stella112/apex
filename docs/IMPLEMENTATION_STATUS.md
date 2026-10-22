@@ -18,7 +18,7 @@
 | 3. Weekend Shield | P0 | PASS | sessions, closed-window returns (paginated 1h mark klines), p_gap, bands, STALE_MARK/THIN_BOOK/UNDERLYING_UNKNOWN, stop/partial-close/isoMargin proposals through the referee | 2026-10-22 20:08 |
 | 4. Protected execution | P0 | IN PROGRESS | PAPER working; LIVE stop/partial close/isoMargin/cancel code + reconcile, mocked-tested; not yet run live | 2026-10-22 20:20 |
 | 5. MCP server (stdio) | P0 | IN PROGRESS | works over stdio (smoke); Claude Desktop check by Maris pending | 2026-10-22 20:16 |
-| 6. Dashboard | P0 | PASS | live markets, Circuit form → report, positions + proposals + confirm, log + verify, mode badges | 2026-10-22 20:30 |
+| 6. Dashboard | P0 | PASS | Overview page (live liquidation proof 33/33, live Circuit verdict + alternative, weekend gap bars + sparklines, log integrity); all 7 pages load live data with no console errors at 1440 px; 390 px no horizontal overflow (docs/evidence/dashboard-overview-1440.jpg); `pnpm test` 14 files 180/180 | 2026-10-22 21:00 |
 | 7. Credit Line Copilot | P1 | PASS | health, recovery boundary, fix amounts, heatmap; user-entered line values, live prices | 2026-10-22 20:36 |
 | 8. Fair-value bands | P1 | PASS | β/R²/samples shown; R² < 0.2 → no reliable band | 2026-10-22 20:42 |
 | 9. Streamable HTTP transport | P1 | PASS | `pnpm mcp:http` 127.0.0.1:8788/mcp, stateless, DNS-rebinding protection | 2026-10-22 20:42 |
@@ -30,7 +30,7 @@
 - PAPER limit orders are not simulated (market only); paper stops trigger when Apex next reads the paper ledger.
 - Circuit without an account models the trade as isolated-equivalent (margin = notional/leverage), labeled.
 - Fees use base tier 0; the account's own tier (/v2/portfolio fee_tier) is not read.
-- Weekend gap score in Circuit is attached by Phase 4.
+- Circuit shows p_gap for the simulated trade (Weekend Shield distribution at its liquidation distance).
 - R4 concentration denominator = max(resulting portfolio, maxPortfolioNotionalUsd) (B3, decided).
 - Cancels are checked by R12 only; reductions skip R1–R6 and R9 (CLAUDE.md §6.3 lists only R7, R8, R10, R11, R12 for reductions).
 - Stop orders are checked against both LOT_SIZE and MARKET_LOT_SIZE (which one the engine applies to triggered stops is undocumented).
