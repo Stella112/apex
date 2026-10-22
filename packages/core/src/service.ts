@@ -1,0 +1,559 @@
+// Apex service: one place that wires client, registry, Circuit, Shield, referee, proposals,
+// PAPER/LIVE execution and the decision log. Used by the MCP server and the dashboard API.
+import { PROPOSAL_TTL_MS, RECONCILE_TIMEOUT_MS, type SessionEntry } from "@apex/config";
+import { sha256 } from "@noble/hashes/sha2.js";
+import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
+import { randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { getBalances, getOrderHistory, getPositions } from "./account.js";
+import { type AccountView, type CircuitData, type CircuitInput, type CircuitReport, runCircuit, walkDepth } from "./circuit.js";
+import { loadCircuitData, loadLiveAccount } from "./circuit-data.js";
+import { DecisionLog, type LogEntry, canonicalJSON, loadOrCreateLogSigner, verifyLog } from "./decision-log.js";
+import { StrikeClient, type StrikeEnv } from "./http.js";
+import { accountLiquidations } from "./margin.js";
+import { getDepth, getMarkets, getProtocolVaults } from "./market.js";
+import { D, dec } from "./money.js";
+import {
+  type PaperState, PaperError, loadPaper, paperAddStop, paperCancel, paperCheckStops, paperClose, paperFree, paperIsoAdd, paperOpen,
+  paperPositionsWithLiq, savePaper,
+} from "./paper.js";
+import { DEFAULT_POLICY, type Policy, PolicySchema, mergePolicy } from "./policy.js";
+import { type Action, type Mode, type RefereeContext, type Verdict, evaluate, isReduction } from "./referee.js";
+import { MarketRegistry, type MarketRecord, type RegistryClass } from "./registry.js";
+import type { MarketInfo } from "./schemas.js";
+import { type Flag, type GapDistribution, flagsFor, gapDistribution } from "./shield.js";
+import { type MarketGapStats, type PositionGapRisk, type PositionInputView, loadMarkHistory, marketGapStats, positionGapRisk } from "./shield-report.js";
+import { parseApiWalletKey } from "./signing.js";
+import { addIsoMargin, cancelOrder, placeOrder, reconcileIsoMargin, reconcileOrder } from "./trading.js";
+
+export type PositionSource = "own" | "paper" | "vault";
+
+export interface ApexOptions {
+  env: StrikeEnv;
+  publicKey?: string;
+  privateKey?: string;
+  /** APEX_MODE: "live" enables the LIVE path (still needs referee + human confirmation). */
+  apexMode: "paper" | "live";
+  stateDir: string;
+  logSigningKey?: string;
+  vaultId?: string;
+  now?: () => number;
+  client?: StrikeClient;
+}
+
+export interface Proposal {
+  id: string;
+  createdAt: string;
+  expiresAt: number;
+  mode: Mode;
+  action: Action;
+  /** Leverage for paper opens. */
+  leverage?: number;
+  circuit?: unknown;
+  verdict: Verdict;
+  paramsHash: string;
+  status: "proposed" | "executed" | "rejected" | "expired";
+  source: PositionSource;
+  summary: string;
+}
+
+export interface ExecutionResult {
+  proposalId: string;
+  mode: Mode;
+  status: string;
+  label: "LIVE" | "PAPER";
+  details: unknown;
+  verdict: Verdict;
+  logSeq: number;
+}
+
+const hashAction = (a: Action) => bytesToHex(sha256(utf8ToBytes(canonicalJSON(a))));
+
+export class Apex {
+  readonly client: StrikeClient;
+  readonly registry: MarketRegistry;
+  readonly log: DecisionLog;
+  readonly apexMode: "paper" | "live";
+  private readonly now: () => number;
+  private readonly files: { paper: string; policy: string; proposals: string; log: string; logKey: string };
+  readonly vaultId: string | undefined;
+
+  constructor(o: ApexOptions) {
+    const key = o.publicKey && o.privateKey ? parseApiWalletKey(o.publicKey, o.privateKey) : undefined;
+    this.now = o.now ?? Date.now;
+    this.client = o.client ?? new StrikeClient({ env: o.env, key, now: this.now });
+    this.registry = new MarketRegistry(this.client, this.now);
+    this.apexMode = o.apexMode;
+    this.vaultId = o.vaultId || undefined;
+    mkdirSync(o.stateDir, { recursive: true });
+    this.files = {
+      paper: join(o.stateDir, "paper.json"),
+      policy: join(o.stateDir, "policy.json"),
+      proposals: join(o.stateDir, "proposals.json"),
+      log: join(o.stateDir, "decisions.jsonl"),
+      logKey: join(o.stateDir, "..", "keys", "log_signing.key"),
+    };
+    this.log = new DecisionLog(this.files.log, loadOrCreateLogSigner(o.logSigningKey, this.files.logKey), this.now);
+  }
+
+  get hasKeys(): boolean {
+    return this.client.hasKeys;
+  }
+
+  /** Mode for new actions: LIVE only when APEX_MODE=live and keys exist; otherwise PAPER. */
+  get mode(): Mode {
+    return this.apexMode === "live" && this.hasKeys ? "live" : "paper";
+  }
+
+  defaultSource(): PositionSource {
+    return this.hasKeys ? "own" : "paper";
+  }
+
+  // ── policy ─────────────────────────────────────────────────────────────────
+  getPolicy(): Policy {
+    if (!existsSync(this.files.policy)) return DEFAULT_POLICY;
+    return PolicySchema.parse(JSON.parse(readFileSync(this.files.policy, "utf8")));
+  }
+
+  setPolicy(patch: unknown): Policy {
+    const next = mergePolicy(this.getPolicy(), patch);
+    writeFileSync(this.files.policy, JSON.stringify(next, null, 2));
+    this.log.append("policy_update", "paper", { patch, policy: next });
+    return next;
+  }
+
+  // ── markets ────────────────────────────────────────────────────────────────
+  async markets(): Promise<MarketRecord[]> {
+    if (!this.registry.current || this.now() - this.registry.current.fetchedAt > 60_000) await this.registry.load();
+    return this.registry.current!.markets;
+  }
+
+  async listMarkets(filter: { class?: RegistryClass; openOnly?: boolean } = {}) {
+    const ms = await this.markets();
+    return ms.filter((m) => (!filter.class || m.class === filter.class) && (!filter.openOnly || m.sessionState.underlying === "open"));
+  }
+
+  async market(symbol: string): Promise<MarketRecord> {
+    const m = (await this.markets()).find((x) => x.symbol === symbol);
+    if (!m) throw new Error(`Unknown symbol ${symbol}. Symbols are case-sensitive, e.g. NVDA-USD.`);
+    return m;
+  }
+
+  async getMarket(symbol: string) {
+    const m = await this.market(symbol);
+    const [depth, klines] = await Promise.all([getDepth(this.client, symbol).catch(() => null), loadMarkHistory(this.client, symbol, 3, this.now())]);
+    const mark = dec(m.stats.markPrice);
+    const { stats } = marketGapStats(m, klines, depth?.data ?? null, this.now());
+    const summary = depth ? {
+      bestBid: depth.data.bids[0]?.[0] ?? null,
+      bestAsk: depth.data.asks[0]?.[0] ?? null,
+      spreadBps: depth.data.bids[0] && depth.data.asks[0] ? dec(depth.data.asks[0][0]).sub(dec(depth.data.bids[0][0])).div(mark).mul(10000).toFixed(2) : null,
+      levels: { bids: depth.data.bids.length, asks: depth.data.asks.length },
+      label: "LIVE",
+    } : null;
+    return { market: m, depth: summary, gap: stats };
+  }
+
+  // ── accounts and positions ─────────────────────────────────────────────────
+  private paper(): PaperState {
+    return loadPaper(this.files.paper);
+  }
+
+  private async marketsInfo(): Promise<{ markets: Record<string, MarketInfo>; fetchedAt: number }> {
+    const r = await getMarkets(this.client);
+    return { markets: r.data.markets, fetchedAt: r.fetchedAt };
+  }
+
+  /** Paper ledger with stops checked against current marks. */
+  private async paperRefreshed(): Promise<PaperState> {
+    let s = this.paper();
+    if (!s.orders.some((o) => o.status === "resting")) return s;
+    const { markets } = await this.marketsInfo();
+    const marks = Object.fromEntries(Object.entries(markets).map(([k, v]) => [k, v.mark_price]));
+    const before = s.fills.length;
+    s = paperCheckStops(s, marks, await this.takerRate(), new Date(this.now()).toISOString());
+    if (s.fills.length !== before) {
+      savePaper(this.files.paper, s);
+      this.log.append("paper_stop_triggered", "paper", { fills: s.fills.slice(before) });
+    }
+    return s;
+  }
+
+  private async takerRate(): Promise<string> {
+    const r = await this.client.publicGet("/v2/fee-tiers", undefined, (await import("./schemas.js")).FeeTiers);
+    const t = r.data.feeTiers.find((x) => x.Tier === 0);
+    if (!t) throw new Error("fee tier 0 missing");
+    return String(t.TakerRate);
+  }
+
+  private async vault(): Promise<string> {
+    if (this.vaultId) return this.vaultId;
+    const v = (await getProtocolVaults(this.client)).data.vaults[0];
+    if (!v) throw new Error("no protocol vault found");
+    return v.vault_id;
+  }
+
+  /** Positions with liquidation price, from the chosen source. */
+  async positionViews(source: PositionSource): Promise<{ label: string; positions: PositionInputView[]; walletBalance: string | null; fetchedAt: number; markets: Record<string, MarketInfo>; marketsFetchedAt: number }> {
+    const mk = await this.marketsInfo();
+    if (source === "paper") {
+      const s = await this.paperRefreshed();
+      const mm = Object.fromEntries(Object.entries(mk.markets).map(([k, m]) => [k, { tiers: m.margin_tiers, quotePrec: m.quote_prec, mark: m.mark_price }]));
+      return { label: "PAPER", positions: paperPositionsWithLiq(s, mm), walletBalance: s.walletBalance, fetchedAt: this.now(), markets: mk.markets, marketsFetchedAt: mk.fetchedAt };
+    }
+    const scope = source === "vault" ? { vaultId: await this.vault() } : {};
+    const [pos, bal] = await Promise.all([getPositions(this.client, scope), getBalances(this.client, scope)]);
+    return {
+      label: source === "vault" ? `LIVE (vault ${scope.vaultId}, public read-only — not your account)` : "LIVE",
+      positions: pos.data.positions,
+      walletBalance: bal.data[0]?.walletBalance ?? null,
+      fetchedAt: Math.min(pos.fetchedAt, bal.fetchedAt),
+      markets: mk.markets,
+      marketsFetchedAt: mk.fetchedAt,
+    };
+  }
+
+  async accountSummary(source: PositionSource = this.defaultSource()) {
+    if (source === "paper") {
+      const s = await this.paperRefreshed();
+      return {
+        label: "PAPER", walletBalance: s.walletBalance, freeBalance: paperFree(s).toFixed(2), positions: s.positions.length,
+        restingStops: s.orders.filter((o) => o.status === "resting").length, note: "Apex paper account; no funds at risk.",
+      };
+    }
+    const scope = source === "vault" ? { vaultId: await this.vault() } : {};
+    const { getAccount } = await import("./account.js");
+    const a = await getAccount(this.client, scope);
+    return { label: source === "vault" ? "LIVE (vault, public read-only)" : "LIVE", ...a.data };
+  }
+
+  private accountView(v: Awaited<ReturnType<Apex["positionViews"]>>, source: PositionSource): AccountView | null {
+    if (v.walletBalance === null) return null;
+    return {
+      source: source === "paper" ? "PAPER" : "LIVE",
+      walletBalance: v.walletBalance,
+      positions: v.positions,
+      marginModeFor: () => (source === "paper" ? "isolated" : "cross"),
+      fetchedAt: v.fetchedAt,
+    };
+  }
+
+  private actionsInLastHour(): number {
+    const cutoff = this.now() - 3600_000;
+    return this.log.entries().filter((e) => e.type === "execution" && Date.parse(e.ts) >= cutoff && !(e.payload as { reduction?: boolean })?.reduction).length;
+  }
+
+  private async dist(m: MarketRecord): Promise<{ dist: GapDistribution; flags: Flag[] }> {
+    const isCrypto = m.class === "crypto";
+    if (isCrypto) return { dist: gapDistribution(undefined, [], this.now()), flags: [] };
+    const [k, depth] = await Promise.all([loadMarkHistory(this.client, m.symbol, 3, this.now()), getDepth(this.client, m.symbol).catch(() => null)]);
+    const entry: SessionEntry | undefined = m.session ?? (isCrypto ? undefined : { symbol: m.symbol, class: "equity", venue: "unknown", tz: "UTC", schedule: { kind: "unknown" }, source: "none" });
+    return { dist: gapDistribution(entry, k, this.now()), flags: flagsFor(m.session, isCrypto, k, depth?.data ?? null, dec(m.stats.markPrice)) };
+  }
+
+  async positionsWithRisk(source: PositionSource = this.defaultSource(), force = false): Promise<{ label: string; positions: PositionGapRisk[]; asOf: string }> {
+    const views = await this.positionViews(source);
+    const ms = await this.markets();
+    const policy = this.getPolicy();
+    const symbols = [...new Set(views.positions.map((p) => p.symbol))];
+    const distMap = new Map<string, { dist: GapDistribution; flags: Flag[] }>();
+    for (const s of symbols) {
+      const m = ms.find((x) => x.symbol === s);
+      if (m) distMap.set(s, await this.dist(m));
+    }
+    const data: CircuitData = {
+      now: this.now(), mode: this.mode, liveEnvEnabled: this.apexMode === "live", market: undefined, markets: views.markets,
+      marketsFetchedAt: views.marketsFetchedAt, depth: null, depthFetchedAt: this.now(), feeTiers: null,
+      account: this.accountView(views, source), actionsInLastHour: this.actionsInLastHour(),
+    };
+    const out = views.positions.map((p) =>
+      positionGapRisk(p, views.positions, {
+        policy,
+        circuitData: data,
+        registry: (s) => ms.find((m) => m.symbol === s),
+        dist: (s) => distMap.get(s)?.dist ?? gapDistribution(undefined, [], this.now()),
+        flags: (s) => distMap.get(s)?.flags ?? [],
+        positionsLabel: views.label,
+      }, force),
+    );
+    return { label: views.label, positions: out, asOf: new Date(this.now()).toISOString() };
+  }
+
+  async weekendRiskReport(source: PositionSource = this.defaultSource()) {
+    const ms = await this.markets();
+    const tradfi = ms.filter((m) => m.class !== "crypto");
+    const markets: MarketGapStats[] = [];
+    for (const m of tradfi) {
+      const [k, depth] = await Promise.all([loadMarkHistory(this.client, m.symbol, 3, this.now()), getDepth(this.client, m.symbol).catch(() => null)]);
+      markets.push(marketGapStats(m, k, depth?.data ?? null, this.now()).stats);
+    }
+    const positions = await this.positionsWithRisk(source);
+    const entry = this.log.append("weekend_report", "scenario", {
+      source, positions: positions.positions.map((p) => ({ symbol: p.symbol, band: p.band, pGapPct: p.pGapPct, method: p.method, samples: p.samples })),
+    });
+    return { asOf: new Date(this.now()).toISOString(), mode: this.mode, positionsLabel: positions.label, markets, positions: positions.positions, logSeq: entry.seq };
+  }
+
+  async orderHistory(source: PositionSource = this.defaultSource(), symbol?: string) {
+    if (source === "paper") {
+      const s = this.paper();
+      return { label: "PAPER", orders: s.orders, fills: s.fills.slice(-50) };
+    }
+    const scope = source === "vault" ? { vaultId: await this.vault() } : {};
+    const r = await getOrderHistory(this.client, scope, { symbol, limit: 50 });
+    return { label: source === "vault" ? "LIVE (vault, public read-only)" : "LIVE", orders: r.data.orders };
+  }
+
+  // ── Circuit ────────────────────────────────────────────────────────────────
+  private async circuitData(symbol: string, source: PositionSource): Promise<CircuitData> {
+    const views = await this.positionViews(source).catch(() => null);
+    const account = views ? this.accountView(views, source) : null;
+    const m = await this.market(symbol);
+    let gap: CircuitData["gap"];
+    if (m.class !== "crypto") {
+      const { dist } = await this.dist(m);
+      gap = { pGap: null, band: "N/A", method: dist.method, samples: dist.samples };
+    }
+    return loadCircuitData(this.client, this.registry, symbol, {
+      mode: this.mode, liveEnvEnabled: this.apexMode === "live", account, actionsInLastHour: this.actionsInLastHour(), now: this.now, ...(gap ? { gap } : {}),
+    });
+  }
+
+  async simulateTrade(input: CircuitInput, source: PositionSource = this.defaultSource()): Promise<CircuitReport> {
+    await this.market(input.symbol);
+    const data = await this.circuitData(input.symbol, source);
+    const report = runCircuit(input, data, this.getPolicy());
+    this.log.append("simulation", "scenario", {
+      input, decision: report.verdict.decision, violations: report.verdict.violations.map((v) => v.id),
+      alternative: report.verdict.alternative ?? null,
+    });
+    return report;
+  }
+
+  async stressTestPosition(symbol: string, movesPct: string[], source: PositionSource = this.defaultSource()) {
+    const views = await this.positionViews(source);
+    const p = views.positions.find((x) => x.symbol === symbol);
+    if (!p) throw new Error(`No ${symbol} position in ${views.label}`);
+    const info = views.markets[symbol];
+    if (!info) throw new Error(`No market data for ${symbol}`);
+    const mark = dec(info.mark_price), size = dec(p.size), liq = dec(p.liquidation_price);
+    const rows = movesPct.map((m) => {
+      const k = dec(m).div(100);
+      const price = size.isPos() ? mark.mul(new D(1).sub(k)) : mark.mul(new D(1).add(k));
+      const pnl = price.sub(dec(p.entry_price)).mul(size);
+      const liquidated = !liq.isZero() && (size.isPos() ? price.lte(liq) : price.gte(liq));
+      return { adverseMovePct: m, price: price.toSignificantDigits(10).toString(), unrealizedPnlUsd: pnl.toFixed(2), liquidated, label: "SCENARIO" };
+    });
+    return { label: views.label, symbol, size: p.size, entry: p.entry_price, mark: info.mark_price, liquidationPrice: p.liquidation_price, rows, note: "Other positions and the wallet held constant; before fees and funding." };
+  }
+
+  // ── proposals ──────────────────────────────────────────────────────────────
+  private proposals(): Record<string, Proposal> {
+    if (!existsSync(this.files.proposals)) return {};
+    return JSON.parse(readFileSync(this.files.proposals, "utf8")) as Record<string, Proposal>;
+  }
+
+  private saveProposal(p: Proposal): void {
+    const all = this.proposals();
+    all[p.id] = p;
+    // Keep the file small: drop proposals older than a day.
+    for (const [k, v] of Object.entries(all)) if (this.now() - v.expiresAt > 86_400_000) delete all[k];
+    const tmp = `${this.files.proposals}.tmp`;
+    writeFileSync(tmp, JSON.stringify(all, null, 2));
+    renameSync(tmp, this.files.proposals);
+  }
+
+  getProposal(id: string): Proposal | undefined {
+    return this.proposals()[id];
+  }
+
+  private store(action: Action, verdict: Verdict, source: PositionSource, summary: string, extra: { leverage?: number; circuit?: unknown } = {}): Proposal {
+    const p: Proposal = {
+      id: randomUUID(),
+      createdAt: new Date(this.now()).toISOString(),
+      expiresAt: this.now() + PROPOSAL_TTL_MS,
+      mode: this.mode,
+      action,
+      ...extra,
+      verdict,
+      paramsHash: hashAction(action),
+      status: "proposed",
+      source,
+      summary,
+    };
+    this.saveProposal(p);
+    this.log.append("proposal", p.mode, { id: p.id, action, decision: verdict.decision, violations: verdict.violations.map((v) => `${v.id}: ${v.message}`), source, summary });
+    return p;
+  }
+
+  async proposeTrade(input: CircuitInput, source: PositionSource = this.defaultSource()): Promise<{ proposal: Proposal; circuit: CircuitReport }> {
+    const circuit = await this.simulateTrade(input, source);
+    const action: Action = { kind: "open", symbol: input.symbol, side: input.side, size: circuit.size.value ?? "0", orderType: input.orderType, ...(input.limitPrice ? { price: input.limitPrice } : {}), leverage: input.leverage };
+    const summary = `${input.side} ${action.size} ${input.symbol} ${input.orderType} at ${input.leverage}x (≈ $${circuit.notionalUsd.value})`;
+    const proposal = this.store(action, circuit.verdict, source, summary, { leverage: input.leverage, circuit: { notionalUsd: circuit.notionalUsd, liquidation: circuit.liquidation, fees: circuit.fees } });
+    return { proposal, circuit };
+  }
+
+  async proposeProtection(symbol: string, kind?: "protective_stop" | "partial_close" | "iso_margin_add", source: PositionSource = this.defaultSource()) {
+    const risk = await this.positionsWithRisk(source, true);
+    const pos = risk.positions.find((p) => p.symbol === symbol);
+    if (!pos) throw new Error(`No ${symbol} position in ${risk.label}`);
+    const options = pos.suggestions.filter((s) => !kind || s.kind === kind);
+    if (!options.length) return { position: pos, proposals: [] as Proposal[], note: `No ${kind ?? "protection"} proposal could be built for ${symbol} (see flags/notes).` };
+    const proposals = options.map((s) => this.store(s.action, s.verdict, source, s.summary, { circuit: { after: s.after } }));
+    return { position: pos, proposals, note: "Nothing has been sent. Call execute_proposal with confirm: true within 120 s to execute one." };
+  }
+
+  async proposeCancel(symbol: string, orderId: string, source: PositionSource = this.defaultSource()): Promise<Proposal> {
+    const action: Action = { kind: "cancel", symbol, orderId };
+    const ctx = this.baseCtx(await this.market(symbol), "propose", false, null, [], {});
+    return this.store(action, evaluate(action, ctx, this.getPolicy()), source, `cancel order ${orderId} on ${symbol}`);
+  }
+
+  private baseCtx(m: MarketRecord, stage: "propose" | "execute", confirmed: boolean, markPrice: string | null, portfolio: RefereeContext["portfolio"], ages: Partial<RefereeContext["dataAgesMs"]>): RefereeContext {
+    return {
+      stage, mode: this.mode, liveEnvEnabled: this.apexMode === "live", humanConfirmed: confirmed,
+      market: { symbol: m.symbol, class: m.class, perpStatus: m.perpStatus, underlying: m.sessionState.underlying, filters: m.filters },
+      markPrice, dataAgesMs: { mark: ages.mark ?? null, depth: ages.depth ?? null, account: ages.account ?? null }, portfolio,
+      liquidation: { kind: "none" }, actionsInLastHour: this.actionsInLastHour(),
+    };
+  }
+
+  // ── execution ──────────────────────────────────────────────────────────────
+  async executeProposal(id: string, confirm: boolean): Promise<ExecutionResult> {
+    const p = this.getProposal(id);
+    if (!p) throw new Error(`Unknown proposal ${id}`);
+    const fail = (status: string, details: unknown, verdict: Verdict): ExecutionResult => {
+      const e = this.log.append("execution_blocked", p.mode, { proposalId: id, status, details });
+      this.saveProposal({ ...p, status: status === "expired" ? "expired" : "rejected" });
+      return { proposalId: id, mode: p.mode, status, label: p.mode === "live" ? "LIVE" : "PAPER", details, verdict, logSeq: e.seq };
+    };
+    if (p.status !== "proposed") throw new Error(`Proposal ${id} is ${p.status}`);
+    if (!confirm) return fail("not_confirmed", "execute_proposal requires confirm: true", p.verdict);
+    if (this.now() > p.expiresAt) return fail("expired", `proposal expired at ${new Date(p.expiresAt).toISOString()}; propose again`, p.verdict);
+    if (hashAction(p.action) !== p.paramsHash) return fail("params_changed", "paramsHash mismatch", p.verdict);
+    if (p.mode !== this.mode) return fail("mode_changed", `proposal was ${p.mode}, Apex is now ${this.mode}`, p.verdict);
+
+    // Re-fetch fresh data and re-run the referee at the execute stage (CLAUDE.md §6.4).
+    await this.registry.load();
+    const m = await this.market(p.action.symbol);
+    let verdict: Verdict;
+    let freshMark: string | null = null;
+    let depth: Awaited<ReturnType<typeof getDepth>> | null = null;
+    let views: Awaited<ReturnType<Apex["positionViews"]>> | null = null;
+    if (p.action.kind === "open") {
+      const data = await this.circuitData(p.action.symbol, p.source);
+      const report = runCircuit({ symbol: p.action.symbol, side: p.action.side, size: p.action.size, leverage: p.action.leverage, orderType: p.action.orderType, ...(p.action.price ? { limitPrice: p.action.price } : {}) }, data, this.getPolicy());
+      verdict = evaluate(p.action, {
+        ...this.baseCtx(m, "execute", true, data.markets[p.action.symbol]?.mark_price ?? null, (data.account?.positions ?? []).map((x) => ({ symbol: x.symbol, size: x.size, markPrice: data.markets[x.symbol]?.mark_price ?? "0", marginMode: x.margin_mode })), {
+          mark: data.now - data.marketsFetchedAt, depth: data.depthFetchedAt === null ? null : data.now - data.depthFetchedAt, account: data.account ? data.now - data.account.fetchedAt : 0,
+        }),
+        refPrice: report.entryPrice.value,
+        liquidation: report.liquidation.distancePct.value ? { kind: "value", pct: report.liquidation.distancePct.value } : report.liquidation.price.value === "0 (none)" ? { kind: "none" } : { kind: "unavailable", reason: report.liquidation.basis },
+      }, this.getPolicy());
+      freshMark = data.markets[p.action.symbol]?.mark_price ?? null;
+      if (data.depth) depth = { data: data.depth, fetchedAt: data.depthFetchedAt ?? this.now(), url: "" };
+    } else if (p.action.kind === "cancel") {
+      verdict = evaluate(p.action, this.baseCtx(m, "execute", true, null, [], {}), this.getPolicy());
+    } else {
+      views = await this.positionViews(p.source);
+      const t = this.now();
+      if (p.action.kind === "partial_close") depth = await getDepth(this.client, p.action.symbol).catch(() => null);
+      freshMark = views.markets[p.action.symbol]?.mark_price ?? null;
+      verdict = evaluate(p.action, this.baseCtx(m, "execute", true, freshMark, views.positions.map((x) => ({ symbol: x.symbol, size: x.size, markPrice: views!.markets[x.symbol]?.mark_price ?? "0", marginMode: x.margin_mode })), {
+        mark: t - views.marketsFetchedAt, depth: depth ? t - depth.fetchedAt : null, account: t - views.fetchedAt,
+      }), this.getPolicy());
+    }
+    if (verdict.decision !== "APPROVE") return fail("blocked_by_referee", verdict.violations.map((v) => `${v.id}: ${v.message}`), verdict);
+
+    const ts = new Date(this.now()).toISOString();
+    let status: string;
+    let details: unknown;
+    try {
+      if (p.mode === "paper") ({ status, details } = await this.executePaper(p.action, p.leverage ?? 1, depth?.data ?? null, ts));
+      else ({ status, details } = await this.executeLive(p.action, views));
+    } catch (e) {
+      if (e instanceof PaperError) return fail("paper_rejected", e.message, verdict);
+      const ent = this.log.append("execution_error", p.mode, { proposalId: id, error: String(e) });
+      this.saveProposal({ ...p, status: "rejected" });
+      return { proposalId: id, mode: p.mode, status: "error", label: p.mode === "live" ? "LIVE" : "PAPER", details: String(e), verdict, logSeq: ent.seq };
+    }
+    this.saveProposal({ ...p, status: "executed" });
+    const e: LogEntry = this.log.append("execution", p.mode, { proposalId: id, action: p.action, status, details, reduction: isReduction(p.action) });
+    return { proposalId: id, mode: p.mode, status, label: p.mode === "live" ? "LIVE" : "PAPER", details, verdict, logSeq: e.seq };
+  }
+
+  private async executePaper(a: Action, leverage: number, depth: import("./schemas.js").Depth | null, ts: string): Promise<{ status: string; details: unknown }> {
+    let s = this.paper();
+    const taker = await this.takerRate();
+    if (a.kind === "open" || a.kind === "partial_close") {
+      if (a.kind === "open" && a.orderType === "limit") throw new PaperError("PAPER: limit orders are not simulated; use a market order");
+      if (!depth) throw new PaperError("PAPER: no fresh order book to simulate the fill");
+      const w = walkDepth(depth, a.side, dec(a.size));
+      if (w.insufficient || !w.avgPrice) throw new PaperError("PAPER: order book cannot fill this size");
+      const px = w.avgPrice.toSignificantDigits(12).toString();
+      s = a.kind === "open" ? paperOpen(s, a.symbol, a.side, a.size, px, leverage, taker, ts) : paperClose(s, a.symbol, a.side, a.size, px, taker, ts, "reduce-only market close");
+      savePaper(this.files.paper, s);
+      return { status: "filled (PAPER)", details: { avgFill: px, levelsUsed: w.levelsUsed, fill: s.fills.at(-1), walletBalance: s.walletBalance } };
+    }
+    if (a.kind === "protective_stop") {
+      const order = { id: `paper-${randomUUID()}`, symbol: a.symbol, side: a.side, type: "stop" as const, size: a.size, stopPrice: a.stopPrice, reduceOnly: true as const, status: "resting" as const, createdAt: ts };
+      s = paperAddStop(s, order);
+      savePaper(this.files.paper, s);
+      return { status: "resting (PAPER simulated stop)", details: order };
+    }
+    if (a.kind === "iso_margin_add") {
+      s = paperIsoAdd(s, a.symbol, a.amount);
+      savePaper(this.files.paper, s);
+      return { status: "applied (PAPER)", details: { symbol: a.symbol, amount: a.amount, iso_balance: s.positions.find((x) => x.symbol === a.symbol)?.iso_balance } };
+    }
+    s = paperCancel(s, a.orderId);
+    savePaper(this.files.paper, s);
+    return { status: "canceled (PAPER)", details: { orderId: a.orderId } };
+  }
+
+  /** LIVE path: exactly one request per action, then reconcile from Strike (no retries). */
+  private async executeLive(a: Action, views: Awaited<ReturnType<Apex["positionViews"]>> | null): Promise<{ status: string; details: unknown }> {
+    if (a.kind === "open") throw new Error("LIVE opens are out of scope for Apex (CLAUDE.md §5 P0.4): use PAPER, or open on Strike directly");
+    if (a.kind === "protective_stop" || a.kind === "partial_close") {
+      const clientOrderId = `apex-${randomUUID()}`;
+      const body = a.kind === "protective_stop"
+        ? { client_order_id: clientOrderId, symbol: a.symbol, side: a.side, type: "stop" as const, size: a.size, stop_price: a.stopPrice, reduce_only: true as const }
+        : { client_order_id: clientOrderId, symbol: a.symbol, side: a.side, type: "market" as const, size: a.size, reduce_only: true as const, slippage: a.slippage };
+      const sent = await placeOrder(this.client, body);
+      this.log.append("live_order_sent", "live", { body, response: sent.data });
+      const rec = await reconcileOrder(this.client, a.symbol, clientOrderId, { timeoutMs: RECONCILE_TIMEOUT_MS, now: this.now });
+      return { status: `${rec.status} (Strike)`, details: { clientOrderId, sent: sent.data, reconciled: rec } };
+    }
+    if (a.kind === "iso_margin_add") {
+      const before = views?.positions.find((x) => x.symbol === a.symbol)?.iso_balance ?? "0";
+      const sent = await addIsoMargin(this.client, a.symbol, a.amount);
+      this.log.append("live_iso_margin_sent", "live", { symbol: a.symbol, amount: a.amount, response: sent.data });
+      const rec = await reconcileIsoMargin(this.client, a.symbol, before, { timeoutMs: RECONCILE_TIMEOUT_MS, now: this.now });
+      return { status: `${rec.status} (Strike)`, details: { sent: sent.data, reconciled: rec, isoBefore: before } };
+    }
+    const orderId = Number(a.orderId);
+    if (!Number.isSafeInteger(orderId)) throw new Error("order_id must be an integer engine order ID");
+    const sent = await cancelOrder(this.client, a.symbol, orderId);
+    return { status: "cancel sequenced (Strike)", details: sent.data };
+  }
+
+  // ── log ────────────────────────────────────────────────────────────────────
+  decisionLog(limit = 50): LogEntry[] {
+    return this.log.entries().slice(-limit);
+  }
+
+  verifyLog() {
+    return { ...verifyLog(this.files.log, this.log.publicKeyHex), publicKey: this.log.publicKeyHex, file: this.files.log };
+  }
+
+  /** Liquidation validation helper (CLAUDE.md §6.5) for the chosen LIVE source. */
+  async validateLiquidations(source: "own" | "vault" = this.hasKeys ? "own" : "vault") {
+    const v = await this.positionViews(source);
+    const mm = Object.fromEntries(Object.entries(v.markets).map(([k, m]) => [k, { tiers: m.margin_tiers, quotePrec: m.quote_prec, mark: m.mark_price }]));
+    const { compareLiquidations } = await import("./margin.js");
+    return compareLiquidations(accountLiquidations(v.positions, mm, dec(v.walletBalance ?? "0")), v.positions);
+  }
+}
+

@@ -10,7 +10,8 @@
     "test": "vitest run",
     "phase0": "tsx scripts/phase0-verify.ts",
     "smoke": "tsx scripts/smoke-live.ts",
-    "circuit": "tsx scripts/circuit-live.ts"
+    "circuit": "tsx scripts/circuit-live.ts",
+    "weekend": "tsx scripts/weekend-live.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

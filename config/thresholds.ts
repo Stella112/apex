@@ -16,3 +16,9 @@ export const GAP_BANDS = { lowBelow: "0.05", highAbove: "0.20" } as const;
 
 /** THIN_BOOK when depth within ±1% of mark is below this USD amount (CLAUDE.md §6.6 example). */
 export const THIN_BOOK_USD = "10000";
+
+/** Starting balance of the Apex PAPER account (USD, PAPER label everywhere). Decided default. */
+export const PAPER_START_BALANCE_USD = "1000";
+
+/** LIVE order reconciliation window (CLAUDE.md §6.4). */
+export const RECONCILE_TIMEOUT_MS = 20_000;

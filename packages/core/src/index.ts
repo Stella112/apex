@@ -13,3 +13,8 @@ export * from "./decision-log.js";
 export * from "./margin.js";
 export * from "./circuit.js";
 export * from "./circuit-data.js";
+export * from "./shield.js";
+export * from "./shield-report.js";
+export * from "./paper.js";
+export * from "./trading.js";
+export * from "./service.js";

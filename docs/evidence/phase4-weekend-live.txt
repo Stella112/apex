@@ -1,0 +1,37 @@
+Weekend risk report 2026-10-22T20:06:56.553Z — mode paper; positions: LIVE (vault 3fd3ab0b-318b-4f99-9ad6-66e9e917bea8, public read-only — not your account)
+symbol       class     under     h→open  window method       n   σ1h%  worstL%  P(−5%)  P(−10%)  flags
+AAOI-USD     equity    closed      17.4    17.4 EMPIRICAL   48  1.179   -16.35    20.8      4.2  
+COIN-USD     equity    closed      17.4    17.4 EMPIRICAL   40  0.768    -6.12     2.5      0.0  
+CRCL-USD     equity    closed      17.4    17.4 EMPIRICAL   37  0.923    -7.87     8.1      0.0  
+CXMT-USD     equity    unknown        -    65.5 MODELED      0  0.769        -    20.5      4.5  UNDERLYING_UNKNOWN
+DRAM-USD     equity    unknown        -    65.5 MODELED      0  0.658        -    16.8      2.4  UNDERLYING_UNKNOWN
+GOOGL-USD    equity    closed      17.4    17.4 EMPIRICAL   47  0.299    -2.59     0.0      0.0  
+MINIMAX-USD  equity    unknown        -    65.5 MODELED      0  1.258        -    30.7     15.0  UNDERLYING_UNKNOWN
+MU-USD       equity    closed      17.4    17.4 EMPIRICAL   83  0.981   -10.04    10.8      1.2  
+NAS100-USD   index     closed      17.4    17.4 EMPIRICAL   67  0.225    -1.83     0.0      0.0  
+NVDA-USD     equity    closed      17.4    17.4 EMPIRICAL   97  0.432    -3.49     0.0      0.0  
+SKHYNIX-USD  equity    unknown        -    65.5 MODELED      0  1.166        -    29.3     13.2  UNDERLYING_UNKNOWN
+SNDK-USD     equity    closed      17.4    17.4 EMPIRICAL   82  1.333   -14.55    19.5      2.4  
+SP500-USD    index     closed      17.4    17.4 EMPIRICAL   47  0.119    -0.79     0.0      0.0  
+SPCX-USD     equity    unknown        -    65.5 MODELED      0  0.972        -    25.7      9.0  UNDERLYING_UNKNOWN
+TSLA-USD     equity    closed      17.4    17.4 EMPIRICAL   63  0.497    -4.42     0.0      0.0  
+UNITREE-USD  equity    unknown        -    65.5 MODELED      0  0.801        -    21.4      5.2  UNDERLYING_UNKNOWN
+WTI-USD      commodity open           -     1.0 EMPIRICAL  130  0.611    -5.93     1.5      0.0  
+XAG-USD      commodity open           -     1.0 EMPIRICAL  133  0.540    -0.52     0.0      0.0  
+XAU-USD      commodity open           -     1.0 EMPIRICAL  132  0.272    -0.47     0.0      0.0  
+ZHIPU-USD    equity    unknown        -    65.5 MODELED      0  1.098        -    28.2     11.8  UNDERLYING_UNKNOWN
+
+Positions (LIVE (vault 3fd3ab0b-318b-4f99-9ad6-66e9e917bea8, public read-only — not your account)): 33; bands {"N/A":13,"LOW":20}
+  AAOI-USD     short liqDist 252972.54% p_gap 0.0% LOW (EMPIRICAL, n=48) 
+  MINIMAX-USD  long  liqDist none% p_gap 0.0% LOW (MODELED, n=0) UNDERLYING_UNKNOWN
+  SNDK-USD     short liqDist 13952.79% p_gap 0.0% LOW (EMPIRICAL, n=82) 
+  TSLA-USD     long  liqDist none% p_gap 0.0% LOW (EMPIRICAL, n=63) 
+  MU-USD       short liqDist 32881.44% p_gap 0.0% LOW (EMPIRICAL, n=83) 
+  CXMT-USD     short liqDist 42053.19% p_gap 0.0% LOW (MODELED, n=0) UNDERLYING_UNKNOWN
+  SPCX-USD     short liqDist 13926.91% p_gap 0.0% LOW (MODELED, n=0) UNDERLYING_UNKNOWN
+  DRAM-USD     short liqDist 307615.55% p_gap 0.0% LOW (MODELED, n=0) UNDERLYING_UNKNOWN
+  ZHIPU-USD    long  liqDist none% p_gap 0.0% LOW (MODELED, n=0) UNDERLYING_UNKNOWN
+  UNITREE-USD  short liqDist 1958805.62% p_gap 0.0% LOW (MODELED, n=0) UNDERLYING_UNKNOWN
+  SKHYNIX-USD  short liqDist 41575.94% p_gap 0.0% LOW (MODELED, n=0) UNDERLYING_UNKNOWN
+  XAU-USD      short liqDist 5719.33% p_gap 0.0% LOW (EMPIRICAL, n=132) 
+decision log seq 1

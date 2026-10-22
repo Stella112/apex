@@ -89,6 +89,12 @@ export class DecisionLog {
   }
 
   append(type: string, mode: LogEntry["mode"], payload: unknown): LogEntry {
+    // Re-read the tail so several processes (MCP server, dashboard API) extend one chain.
+    const last = readEntries(this.file).at(-1);
+    if (last) {
+      this.lastSeq = last.seq;
+      this.lastHash = last.hash;
+    }
     const base = { seq: this.lastSeq + 1, ts: new Date(this.now()).toISOString(), type, mode, payload, prevHash: this.lastHash };
     // Round-trip through JSON so the stored payload is exactly what gets hashed.
     const normalized = { ...base, payload: JSON.parse(JSON.stringify(payload ?? null)) as unknown };

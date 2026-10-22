@@ -75,3 +75,11 @@ Script: `pnpm phase0` (`scripts/phase0-verify.ts`). Result: **13/13 calls OK** (
 30. **Liquidation formula VERIFIED-LIVE:** strike-calculations LP/BP formulas reproduce Strike's `liquidation_price` for **33/33** SLP vault positions (cross profile, 33 positions) — within 0.002% on fixtures, 0% on a simultaneous live fetch. Test: `circuit.test.ts` "VALIDATION"; live: `pnpm circuit`.
 31. **Decided (Claude, per Maris delegation):** with no account data, Circuit treats a new trade as isolated with iso_balance = ceil(notional/leverage) and labels it "isolated-equivalent". With a LIVE account, it uses the account's margin mode per symbol (`symbol_settings`, else `default_margin_mode`).
 32. Fees: base tier 0 only (taker 0.0005, maker −0.00005); account tier, referral and staking discounts not applied — labeled in output.
+
+## Phase 4 — 2026-10-22 ~20:08 UTC
+33. Klines pagination with `endTime` VERIFIED-LIVE: 3 pages × ≤1500 rows; NVDA yields 97 close→open windows, MU 83, WTI/XAU/XAG ~130 (live run, docs/evidence/phase4-weekend-live.txt).
+34. Closed-window price points (decided): price at the close = close of the last 1h mark candle ending at/before the close; price at the open = close of the first candle ending at/after the open (includes the opening reaction; 09:30 ET opens are half-hour aligned).
+35. Unknown sessions (decided, conservative): MODELED with σ_1h × √65.5h (the longest regular US weekend window) and flagged UNDERLYING_UNKNOWN.
+36. Protective stop placement (decided): `minLiquidationDistancePct` beyond the liquidation price toward mark, or halfway when closer; rounded to tick away from mark; when there is no liquidation price, `minLiquidationDistancePct` from mark. A stop does not protect against a gap through it — stated in every proposal.
+37. Partial close proposals only for cross positions (an isolated reduction releases margin pro rata, so its LP barely moves); isolated positions get an isoMargin-add proposal computed by inverting the LP formula.
+38. Observation: perp marks for US equities keep moving while the cash market is closed; with 1h granularity the historical NVDA worst close→open move is −3.5%.
