@@ -24,6 +24,11 @@ export const api = {
   log: (limit = 100) => j<{ entries: LogEntry[] }>(`/api/log?limit=${limit}`),
   verify: () => j<{ ok: boolean; entries: number; firstBadSeq?: number; error?: string; publicKey: string }>("/api/log/verify"),
   policy: () => j<Policy>("/api/policy"),
+  creditHealth: (b: Record<string, string>) => post<CreditHealth>("/api/credit/health", b),
+  creditGrid: (b: Record<string, string>) => post<CreditGrid>("/api/credit/grid", b),
 };
+
+export type CreditHealth = Awaited<ReturnType<import("@apex/core").Apex["creditLineHealth"]>>;
+export type CreditGrid = Awaited<ReturnType<import("@apex/core").Apex["creditStressGrid"]>>;
 
 export type { CircuitReport, MarketGapStats, MarketRecord, PositionGapRisk, Proposal, ExecutionResult, LogEntry, Policy, Verdict };

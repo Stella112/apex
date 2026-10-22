@@ -10,7 +10,7 @@
 | Phase 5 — MCP server | P0 | IN PROGRESS | 16 tools; `pnpm test` 9 files 138/138 (in-process MCP tests); stdio smoke vs live mainnet: list_markets, simulate_trade, weekend_risk_report OK in 22 s (docs/evidence/phase5-mcp-stdio-smoke.txt). Gate needs Maris to connect Claude Desktop | 2026-10-22 20:16 |
 | Phase 6 — Execution | P0 | IN PROGRESS | PAPER PASS: `pnpm demo:seed` live prices → 2 paper fills + resting paper stop via propose→referee→confirm→execute, verify_log ok (docs/evidence/phase6-paper-e2e.txt); LIVE path tested against mocked Strike (execution.test.ts). LIVE run BLOCKED on B2 (keys) + Maris approval | 2026-10-22 20:20 |
 | Phase 7 — Dashboard | P0 | PASS | `pnpm dashboard` → Markets radar, Circuit, Positions (Protect → Confirm PAPER → log #18), Decision log (verify ✓ 19 entries); screenshots docs/evidence/dashboard-*-1440.jpg, dashboard-radar-390.jpg (scrollWidth 390 = viewport) | 2026-10-22 20:30 |
-| Phase 8 — Credit Line Copilot | P1 | NOT STARTED | | |
+| Phase 8 — Credit Line Copilot | P1 | PASS | credit.test.ts 16/16 — every doc example exact (J, health 200/100, $0.35/$0.425 boundary, J*=50/57, F*=10/19, 112.28/105.26, C_lock 60.15037594 → 120.300752 ADA, 0.475); MCP credit_line_health + credit_stress_grid; dashboard Credit page with heatmap on live ADA/SLP prices (docs/evidence/dashboard-credit-1440.jpg); `pnpm test` 162/162 | 2026-10-22 20:36 |
 | Phase 9 — Fair-value band + Mandate Vault | P1/P2 | NOT STARTED | | |
 | Phase 10 — Docs and submission | P0 | NOT STARTED | | |
 | 1. Apex Core | P0 | IN PROGRESS | client, signing, registry, sessions (Phase 1); referee, policy, signed log (Phase 2, pending B3) | 2026-10-22 19:46 |
@@ -19,7 +19,7 @@
 | 4. Protected execution | P0 | IN PROGRESS | PAPER working; LIVE stop/partial close/isoMargin/cancel code + reconcile, mocked-tested; not yet run live | 2026-10-22 20:20 |
 | 5. MCP server (stdio) | P0 | IN PROGRESS | works over stdio (smoke); Claude Desktop check by Maris pending | 2026-10-22 20:16 |
 | 6. Dashboard | P0 | PASS | live markets, Circuit form → report, positions + proposals + confirm, log + verify, mode badges | 2026-10-22 20:30 |
-| 7. Credit Line Copilot | P1 | NOT STARTED | | |
+| 7. Credit Line Copilot | P1 | PASS | health, recovery boundary, fix amounts, heatmap; user-entered line values, live prices | 2026-10-22 20:36 |
 | 8. Fair-value bands | P1 | NOT STARTED | | |
 | 9. Streamable HTTP transport | P1 | NOT STARTED | | |
 | 10. Mandate Vault (paper) | P2 | NOT STARTED | | |

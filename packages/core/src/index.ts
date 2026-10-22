@@ -18,3 +18,4 @@ export * from "./shield-report.js";
 export * from "./paper.js";
 export * from "./trading.js";
 export * from "./service.js";
+export * from "./credit.js";

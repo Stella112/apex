@@ -129,6 +129,19 @@ describe("MCP server", () => {
     expect(r.json.status).toBe("expired");
   });
 
+  it("credit_line_health: live-fixture ADA price, user-entered line, doc formulas", async () => {
+    const r = await ctx.call("credit_line_health", { asset: "ADA", collateralUnits: "800", debtUsd: "100", encumberedShares: "86.4" });
+    expect(r.isError).toBe(false);
+    expect(r.json.live.label).toBe("LIVE");
+    expect(r.json.inputs.label).toMatch(/USER-ENTERED/);
+    expect(r.json.params.X).toBe("0.3");
+    expect(["ACTIVE", "RECOVERY"]).toContain(r.json.health.state);
+    const g = await ctx.call("credit_stress_grid", { asset: "ADA", collateralUnits: "800", debtUsd: "100", encumberedShares: "86.4" });
+    expect(g.json.grid.length).toBe(7);
+    const bad = await ctx.call("credit_line_health", { asset: "DOGE", collateralUnits: "1", debtUsd: "1", encumberedShares: "1" });
+    expect(bad.isError).toBe(true);
+  });
+
   it("never sends a write to Strike in PAPER mode", async () => {
     const p = await ctx.call("propose_trade", { symbol: "NVDA-USD", side: "buy", size: "1", leverage: 2, orderType: "market", source: "paper" });
     await ctx.call("execute_proposal", { proposalId: p.json.proposal.id, confirm: true });

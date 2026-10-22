@@ -1,6 +1,7 @@
 // Apex service: one place that wires client, registry, Circuit, Shield, referee, proposals,
 // PAPER/LIVE execution and the decision log. Used by the MCP server and the dashboard API.
-import { PROPOSAL_TTL_MS, RECONCILE_TIMEOUT_MS, type SessionEntry } from "@apex/config";
+import { CREDIT_SHARED, PROPOSAL_TTL_MS, RECONCILE_TIMEOUT_MS, type SessionEntry } from "@apex/config";
+import { boundaryPrice, completionTargets, conversionPrice, fixAmounts, health, paramsFrom, stressGrid } from "./credit.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
 import { randomUUID } from "node:crypto";
@@ -12,7 +13,7 @@ import { loadCircuitData, loadLiveAccount } from "./circuit-data.js";
 import { DecisionLog, type LogEntry, canonicalJSON, loadOrCreateLogSigner, verifyLog } from "./decision-log.js";
 import { StrikeClient, type StrikeEnv } from "./http.js";
 import { accountLiquidations } from "./margin.js";
-import { getDepth, getMarkets, getProtocolVaults } from "./market.js";
+import { getCollateralAssets, getCreditSettings, getDepth, getMarkets, getProtocolVaults, getVault } from "./market.js";
 import { D, dec } from "./money.js";
 import {
   type PaperState, PaperError, loadPaper, paperAddStop, paperCancel, paperCheckStops, paperClose, paperFree, paperIsoAdd, paperOpen,
@@ -552,6 +553,62 @@ export class Apex {
     if (!Number.isSafeInteger(orderId)) throw new Error("order_id must be an integer engine order ID");
     const sent = await cancelOrder(this.client, a.symbol, orderId);
     return { status: "cancel sequenced (Strike)", details: sent.data };
+  }
+
+  // ── credit (P1) ────────────────────────────────────────────────────────────
+  /**
+   * Credit Line Copilot inputs. Line values q, D, s are USER-ENTERED (no per-user credit endpoint,
+   * VERIFICATION #13); collateral price P and SLP share price S are read live.
+   */
+  async creditInputs(asset: string, vaultId?: string) {
+    const [settings, assets] = await Promise.all([getCreditSettings(this.client), getCollateralAssets(this.client)]);
+    const st = settings.data.settings.collateral_assets[asset];
+    const a = assets.data.assets[asset];
+    if (!st || !a) throw new Error("Unknown collateral asset " + asset + ". Supported: " + Object.keys(settings.data.settings.collateral_assets).join(", "));
+    if (!a.price_available || !a.price) throw new Error("No usable price published for " + asset + " (price_available=false)");
+    const approved = settings.data.settings.approved_vaults;
+    const vid = vaultId ?? Object.keys(approved).find((k) => approved[k]);
+    if (!vid) throw new Error("No approved credit vault in /v2/credit/settings");
+    const vault = await getVault(this.client, vid);
+    return {
+      params: paramsFrom(st, CREDIT_SHARED),
+      price: a.price,
+      priceFresh: a.price_fresh && this.now() < a.price_expires_at,
+      sharePrice: vault.data.share_price,
+      vault: { id: vid, name: vault.data.name },
+    };
+  }
+
+  async creditLineHealth(input: { asset: string; collateralUnits: string; debtUsd: string; encumberedShares: string; vaultId?: string }) {
+    const i = await this.creditInputs(input.asset, input.vaultId);
+    const q = dec(input.collateralUnits), Dt = dec(input.debtUsd), s = dec(input.encumberedShares);
+    const P = dec(i.price), S = dec(i.sharePrice);
+    const C = q.mul(P), V = s.mul(S);
+    const h = health(C, V, Dt, i.params);
+    const t = completionTargets(i.params);
+    const b = boundaryPrice(q, V, Dt, i.params);
+    const fix = fixAmounts(q, P, V, Dt, i.params);
+    const f = (x: ReturnType<typeof dec>, dp = 6) => x.toDecimalPlaces(dp).toString();
+    const out = {
+      label: "ESTIMATE",
+      inputs: { ...input, label: "USER-ENTERED line values (Strike exposes no per-user credit-line endpoint)" },
+      live: { collateralPrice: i.price, priceFresh: i.priceFresh, sharePrice: i.sharePrice, vault: i.vault, label: "LIVE", basis: "GET /v2/credit/collateral-assets, GET /v2/vault/:id" },
+      params: { M: i.params.M.toString(), X: i.params.X.toString(), d: i.params.d.toString(), Y: i.params.Y.toString(), F: i.params.F.toString(), r: i.params.r.toString(), basis: "M, X, d from /v2/credit/settings; Y, F, r from the Borrow-and-Earn doc (config/credit.ts)" },
+      values: { collateralValueUsd: f(C, 2), vaultValueUsd: f(V, 2), c: f(h.c), v: f(h.v), J: f(h.J) },
+      health: { credit: h.creditHealth.toFixed(2), joint: h.jointHealth.toFixed(2), floor: h.floorHealth.toFixed(2), state: h.state, note: "Score points, not percentages; 100 = recovery boundary" },
+      targets: { Jstar: f(t.Jstar), Fstar: f(t.Fstar), jointHealthTarget: t.jointHealthTarget.toFixed(2), floorHealthTarget: t.floorHealthTarget.toFixed(2) },
+      recoveryBoundary: { collateralPrice: f(b.price), binds: b.binds, distancePct: P.gt(0) ? P.sub(b.price).div(P).mul(100).toFixed(2) : null, conversionPriceNow: f(conversionPrice(P, i.params)) },
+      fixToCompletionTargets: { alreadyMeets: fix.alreadyMeets, repayUsd: fix.repayUsd.toFixed(2), orAddCollateralUnits: fix.addCollateralUnits.toString() },
+      warnings: i.priceFresh ? [] : ["STALE: collateral price is not fresh (price_fresh=false or expired); numbers shown, do not act on them"],
+    };
+    this.log.append("credit_health", "scenario", { inputs: out.inputs, health: out.health, values: out.values });
+    return out;
+  }
+
+  async creditStressGrid(input: { asset: string; collateralUnits: string; debtUsd: string; encumberedShares: string; vaultId?: string }) {
+    const i = await this.creditInputs(input.asset, input.vaultId);
+    const grid = stressGrid(dec(input.collateralUnits), dec(i.price), dec(input.encumberedShares), dec(i.sharePrice), dec(input.debtUsd), i.params);
+    return { label: "SCENARIO", rowsAreVaultDrawdownPct: [0, -5, -10, -15, -20, -25, -30], colsAreCollateralChangePct: [0, -5, -10, -15, -20, -25, -30, -35, -40, -45, -50], grid, live: { collateralPrice: i.price, sharePrice: i.sharePrice, priceFresh: i.priceFresh } };
   }
 
   // ── log ────────────────────────────────────────────────────────────────────

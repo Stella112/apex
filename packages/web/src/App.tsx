@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Credit } from "./Credit";
 import { type CircuitReport, type LogEntry, type MarketGapStats, type MarketRecord, type PositionGapRisk, type Proposal, type Source, type Status, type Verdict, api } from "./api";
 
-type Page = "radar" | "circuit" | "positions" | "log";
+type Page = "radar" | "circuit" | "positions" | "credit" | "log";
 const DISCLAIMER = "Numbers are estimates from live Strike data, not guarantees, and not financial advice. Limits are enforced by Strike key permissions and the Apex referee, not by an on-chain contract.";
 
 function Logo() {
@@ -397,7 +398,7 @@ export function App() {
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
   }, []);
-  const tabs: Array<[Page, string]> = [["radar", "Markets"], ["circuit", "Circuit"], ["positions", "Positions"], ["log", "Decision log"]];
+  const tabs: Array<[Page, string]> = [["radar", "Markets"], ["circuit", "Circuit"], ["positions", "Positions"], ["credit", "Credit"], ["log", "Decision log"]];
   return (
     <>
       <header className="top">
@@ -413,6 +414,7 @@ export function App() {
         {page === "radar" && <Radar />}
         {page === "circuit" && <Circuit source={source} />}
         {page === "positions" && <Positions source={source} setSource={setSource} status={status} />}
+        {page === "credit" && <Credit />}
         {page === "log" && <Log />}
         <p className="disclaimer">{DISCLAIMER}</p>
       </main>

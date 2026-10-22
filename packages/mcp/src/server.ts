@@ -266,5 +266,42 @@ export function createServer(apex: Apex): McpServer {
     return reply(r.ok ? `Decision log verified: ${r.entries} entries, chain and signatures intact (key ${r.publicKey.slice(0, 16)}…).` : `Decision log verification FAILED at seq ${r.firstBadSeq}: ${r.error}`, r);
   }));
 
+  const creditShape = {
+    asset: z.string().default("ADA").describe("Collateral asset id from /v2/credit/settings, e.g. ADA"),
+    collateralUnits: decStr.describe("q: pledged collateral units (user-entered)"),
+    debtUsd: decStr.describe("D: credit-line debt in USD (user-entered)"),
+    encumberedShares: decStr.describe("s: encumbered SLP shares (user-entered)"),
+  };
+  type CreditArgs = { asset: string; collateralUnits: string; debtUsd: string; encumberedShares: string };
+
+  server.registerTool("credit_line_health", {
+    title: "Credit Line Copilot",
+    description: "Borrow-and-Earn credit-line health with the exact formulas from Strike's docs: c, v, joint risk J, credit health score, Active/Recovery state, recovery-boundary collateral price, and the minimum repay or extra collateral to reach the completion targets. Line values are user-entered (Strike has no per-user credit-line endpoint); collateral and SLP share prices are live. " + DISCLAIMER,
+    inputSchema: creditShape,
+    annotations: { readOnlyHint: true },
+  }, wrap(async (a: CreditArgs) => {
+    const r = await apex.creditLineHealth(a);
+    const fix = r.fixToCompletionTargets.alreadyMeets
+      ? "Already past the completion targets."
+      : "To reach the completion targets: repay about $" + r.fixToCompletionTargets.repayUsd + " or add about " + r.fixToCompletionTargets.orAddCollateralUnits + " " + a.asset + ".";
+    return reply(
+      "Credit line (" + a.asset + ", user-entered values; prices LIVE): health " + r.health.credit + " (" + r.health.state + "; joint " + r.health.joint + ", floor " + r.health.floor + "), J = " + r.values.J +
+      ". Collateral $" + r.values.collateralValueUsd + " at " + r.live.collateralPrice + ", vault $" + r.values.vaultValueUsd +
+      ". Recovery starts at " + a.asset + " ≈ $" + r.recoveryBoundary.collateralPrice + " (" + r.recoveryBoundary.binds + " binds, " + r.recoveryBoundary.distancePct + "% below now). " + fix + " " + r.warnings.join(" ") + " " + DISCLAIMER,
+      r,
+    );
+  }));
+
+  server.registerTool("credit_stress_grid", {
+    title: "Credit stress heatmap",
+    description: "Credit health across collateral price changes (0 to −50%) × SLP drawdowns (0 to −30%), with Recovery cells marked. SCENARIO numbers. " + DISCLAIMER,
+    inputSchema: creditShape,
+    annotations: { readOnlyHint: true },
+  }, wrap(async (a: CreditArgs) => {
+    const r = await apex.creditStressGrid(a);
+    const cells = r.grid.flat();
+    return reply("Credit stress grid (SCENARIO): " + cells.filter((c) => c.state === "RECOVERY").length + " of " + cells.length + " cells are in Recovery. " + DISCLAIMER, r);
+  }));
+
   return server;
 }

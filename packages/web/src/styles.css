@@ -103,6 +103,8 @@ input:focus, select:focus { outline: 2px solid color-mix(in srgb, var(--accent) 
 .loading { color: var(--muted); padding: 20px 0; }
 .logentry { font-family: var(--mono); font-size: 12px; }
 .ok { color: var(--ok); }
+table.heat td { text-align: center; font-weight: 600; border: 1px solid var(--bg); }
+table.heat th { text-align: center; }
 
 @media (max-width: 960px) {
   .cols-2 { grid-template-columns: 1fr; }

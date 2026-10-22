@@ -34,6 +34,9 @@ export function fakeFetch(): { impl: typeof fetch; calls: string[] } {
       case "/v2/account": body = fixture("account_vault_slp"); break;
       case "/v2/history/order": body = fixture("history_order_vault_slp_NVDA"); break;
       case "/v2/openOrders": body = fixture("openOrders_vault_slp_NVDA"); break;
+      case "/v2/credit/settings": body = fixture("credit_settings"); break;
+      case "/v2/credit/collateral-assets": body = fixture("credit_collateral-assets"); break;
+      case "/v2/vault/3fd3ab0b-318b-4f99-9ad6-66e9e917bea8": body = fixture("vault_slp"); break;
       default: return new Response(JSON.stringify({ error: `fake: no route ${p}` }), { status: 404 });
     }
     return new Response(JSON.stringify(body), { status: 200 });
