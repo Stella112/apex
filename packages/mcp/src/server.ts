@@ -279,6 +279,26 @@ export function createServer(apex: Apex): McpServer {
     return reply(s + " " + DISCLAIMER, { mode: apex.mode, ...f });
   }));
 
+  server.registerTool("vault_status", {
+    title: "Mandate Vault status",
+    description: "The published Mandate Vault (PAPER): mandate rules, paper equity, return, drawdown, positions and recent fills. No real vault is traded. " + DISCLAIMER,
+    inputSchema: {},
+    annotations: { readOnlyHint: true },
+  }, wrap(async () => {
+    const v = await apex.vaultStatus();
+    return reply("Mandate Vault (PAPER) \"" + v.mandate.name + "\": equity $" + v.equityUsd + " (" + v.returnPct + "% vs $" + v.startingEquityUsd + "), drawdown " + v.drawdownPct + "%, " + v.positions.length + " position(s), " + v.actionsToday + " action(s) in 24h. " + v.note, v);
+  }));
+
+  server.registerTool("vault_decisions", {
+    title: "Mandate Vault decisions",
+    description: "The Mandate Vault's logged decisions (inputs, template reasoning, referee checks, outcome), newest first. PAPER.",
+    inputSchema: { limit: z.number().int().min(1).max(200).default(20) },
+    annotations: { readOnlyHint: true },
+  }, wrap(async (a: { limit: number }) => {
+    const d = apex.vaultDecisions(a.limit);
+    return reply(d.length + " vault decision(s): " + d.slice(0, 6).map((e) => "#" + e.seq + " " + String((e.payload as { symbol?: string }).symbol) + " " + String((e.payload as { outcome?: string }).outcome)).join(", ") + ".", { label: "PAPER", decisions: d });
+  }));
+
   const creditShape = {
     asset: z.string().default("ADA").describe("Collateral asset id from /v2/credit/settings, e.g. ADA"),
     collateralUnits: decStr.describe("q: pledged collateral units (user-entered)"),

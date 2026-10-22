@@ -1,0 +1,9 @@
+NVDA-USD    no_signal  No trade: mark 0.123% from implied, inside ±0.916%.
+TSLA-USD    no_signal  No trade: mark -0.253% from implied, inside ±1.308%.
+MU-USD      no_signal  No trade: mark -0.192% from implied, inside ±1.858%.
+SNDK-USD    no_signal  No trade: mark -0.813% from implied, inside ±2.853%.
+AAOI-USD    no_signal  No trade: mark -0.744% from implied, inside ±2.922%.
+NAS100-USD  no_signal  No trade: mark -0.087% from implied, inside ±0.276%.
+SP500-USD   no_signal  No trade: mark 0.050% from implied, inside ±0.170%.
+
+PAPER equity $1000.00 (0.00%), drawdown 0.00%, positions 0

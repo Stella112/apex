@@ -20,3 +20,4 @@ export * from "./trading.js";
 export * from "./service.js";
 export * from "./credit.js";
 export * from "./fairvalue.js";
+export * from "./vault.js";

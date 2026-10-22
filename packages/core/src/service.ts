@@ -2,6 +2,7 @@
 // PAPER/LIVE execution and the decision log. Used by the MCP server and the dashboard API.
 import { CREDIT_SHARED, PROPOSAL_TTL_MS, RECONCILE_TIMEOUT_MS, type SessionEntry } from "@apex/config";
 import { type FairValue, fairValue, referenceFor } from "./fairvalue.js";
+import { MANDATE, type VaultState, drawdownPct, initialVaultState, mandatePolicy, reversionSignal } from "./vault.js";
 import { boundaryPrice, completionTargets, conversionPrice, fixAmounts, health, paramsFrom, stressGrid } from "./credit.js";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex, utf8ToBytes } from "@noble/hashes/utils.js";
@@ -91,7 +92,7 @@ export class Apex {
   readonly log: DecisionLog;
   readonly apexMode: "paper" | "live";
   private readonly now: () => number;
-  private readonly files: { paper: string; policy: string; proposals: string; log: string; logKey: string };
+  private readonly files: { paper: string; policy: string; proposals: string; log: string; logKey: string; vaultPaper: string; vaultState: string };
   readonly vaultId: string | undefined;
 
   constructor(o: ApexOptions) {
@@ -108,6 +109,8 @@ export class Apex {
       proposals: join(o.stateDir, "proposals.json"),
       log: join(o.stateDir, "decisions.jsonl"),
       logKey: join(o.stateDir, "..", "keys", "log_signing.key"),
+      vaultPaper: join(o.stateDir, "vault-paper.json"),
+      vaultState: join(o.stateDir, "vault-state.json"),
     };
     this.log = new DecisionLog(this.files.log, loadOrCreateLogSigner(o.logSigningKey, this.files.logKey), this.now);
   }
@@ -569,6 +572,141 @@ export class Apex {
       ref ? loadMarkHistory(this.client, ref, 3, this.now()) : Promise.resolve([]),
     ]);
     return fairValue(symbol, m.class, m.session, m.stats.markPrice, refM?.stats.markPrice ?? null, k, refK, this.now());
+  }
+
+  // ── Mandate Vault (P2, PAPER) ─────────────────────────────────────────────
+  private vaultLedger(): PaperState {
+    const s = loadPaper(this.files.vaultPaper);
+    return existsSync(this.files.vaultPaper) ? s : { ...s, walletBalance: MANDATE.startingEquityUsd };
+  }
+
+  private vaultState(): VaultState {
+    return existsSync(this.files.vaultState) ? (JSON.parse(readFileSync(this.files.vaultState, "utf8")) as VaultState) : initialVaultState(MANDATE);
+  }
+
+  private async vaultEquity(s: PaperState) {
+    const { markets } = await this.marketsInfo();
+    let upnl = new D(0);
+    for (const p of s.positions) {
+      const m = markets[p.symbol];
+      if (m) upnl = upnl.add(dec(m.mark_price).sub(dec(p.entry_price)).mul(dec(p.size)));
+    }
+    return { equity: dec(s.walletBalance).add(upnl), upnl, markets };
+  }
+
+  async vaultStatus() {
+    const s = this.vaultLedger();
+    const st = this.vaultState();
+    const { equity, upnl } = await this.vaultEquity(s);
+    const peak = D.max(dec(st.peakEquity), equity);
+    return {
+      label: "PAPER",
+      mandate: MANDATE,
+      equityUsd: equity.toFixed(2),
+      startingEquityUsd: MANDATE.startingEquityUsd,
+      returnPct: equity.div(dec(MANDATE.startingEquityUsd)).sub(1).mul(100).toFixed(2),
+      unrealizedPnlUsd: upnl.toFixed(2),
+      peakEquityUsd: peak.toFixed(2),
+      drawdownPct: drawdownPct(equity, peak).toFixed(2),
+      positions: s.positions,
+      fills: s.fills.slice(-20),
+      actionsToday: st.actions.filter((t) => Date.parse(t) > this.now() - 86_400_000).length,
+      note: "PAPER vault: simulated fills on live Strike prices. No real vault is traded.",
+    };
+  }
+
+  vaultDecisions(limit = 50): LogEntry[] {
+    return this.log.entries().filter((e) => e.type === "vault_decision").slice(-limit).reverse();
+  }
+
+  /** One mandate evaluation: emergency rule, flat-before-open rule, then reversion signals per allowed symbol. */
+  async vaultTick() {
+    const policy = mandatePolicy(MANDATE);
+    let s = this.vaultLedger();
+    const st = this.vaultState();
+    const decisions: Array<{ symbol: string; outcome: string; reasoning: string; checks?: string[] }> = [];
+    const ts = new Date(this.now()).toISOString();
+    const taker = await this.takerRate();
+    const ms = await this.markets();
+    const record = (d: { symbol: string; outcome: string; reasoning: string; checks?: string[]; inputs?: unknown }) => {
+      decisions.push(d);
+      this.log.append("vault_decision", "paper", { mandate: MANDATE.name, ...d });
+    };
+    const closeAt = async (symbol: string, why: string) => {
+      const p = s.positions.find((x) => x.symbol === symbol);
+      if (!p) return;
+      const side = dec(p.size).isPos() ? "sell" : "buy";
+      const depth = await getDepth(this.client, symbol).catch(() => null);
+      const w = depth ? walkDepth(depth.data, side, dec(p.size).abs()) : null;
+      if (!w?.avgPrice || w.insufficient) {
+        record({ symbol, outcome: "close_failed", reasoning: why + "; order book cannot fill the close (PAPER), will retry next tick" });
+        return;
+      }
+      s = paperClose(s, symbol, side, dec(p.size).abs().toString(), w.avgPrice.toSignificantDigits(12).toString(), taker, ts, why);
+      st.actions.push(ts);
+      record({ symbol, outcome: "closed", reasoning: why + "; filled " + dec(p.size).abs().toString() + " at " + w.avgPrice.toSignificantDigits(10).toString() + " (PAPER)" });
+    };
+
+    // Emergency rule: flatten everything if drawdown exceeds the mandate's limit.
+    let { equity } = await this.vaultEquity(s);
+    const peak = D.max(dec(st.peakEquity), equity);
+    const dd = drawdownPct(equity, peak);
+    if (dd.gt(dec(MANDATE.emergency.flattenAllIfDrawdownPctAbove))) {
+      for (const p of [...s.positions]) await closeAt(p.symbol, "EMERGENCY: drawdown " + dd.toFixed(2) + "% > " + MANDATE.emergency.flattenAllIfDrawdownPctAbove + "%");
+    }
+
+    // Flat before the next underlying open.
+    for (const p of [...s.positions]) {
+      const m = ms.find((x) => x.symbol === p.symbol);
+      const mins = m?.sessionState.nextOpen ? (m.sessionState.nextOpen - this.now()) / 60_000 : null;
+      if (!m || m.sessionState.underlying !== "closed" || (mins !== null && mins <= MANDATE.weekend.flatMinutesBeforeOpen)) {
+        await closeAt(p.symbol, "Mandate: flat before the underlying open (" + (m?.sessionState.underlying ?? "unknown") + (mins !== null ? ", opens in " + mins.toFixed(0) + " min" : "") + ")");
+      }
+    }
+
+    // Signals.
+    const actionsToday = st.actions.filter((t) => Date.parse(t) > this.now() - 86_400_000).length;
+    for (const symbol of MANDATE.allowedSymbols) {
+      if (s.positions.some((p) => p.symbol === symbol)) continue;
+      const m = ms.find((x) => x.symbol === symbol);
+      if (!m) {
+        record({ symbol, outcome: "skip", reasoning: "symbol not listed on Strike" });
+        continue;
+      }
+      const fv = await this.fairValue(symbol).catch(() => null);
+      const sig = reversionSignal({
+        symbol, underlying: m.sessionState.underlying, minutesToOpen: m.sessionState.nextOpen ? (m.sessionState.nextOpen - this.now()) / 60_000 : null,
+        fvStatus: fv?.status ?? "ERROR", implied: fv?.implied ?? null, halfWidthPct: fv?.bandHalfWidthPct ?? null, mark: m.stats.markPrice,
+      }, MANDATE);
+      if (sig.kind === "none") {
+        record({ symbol, outcome: "no_signal", reasoning: "No trade: " + sig.reason + ".", inputs: { mark: m.stats.markPrice, fairValue: fv ? { status: fv.status, implied: fv.implied, halfWidthPct: fv.bandHalfWidthPct } : null } });
+        continue;
+      }
+      if (actionsToday + decisions.filter((d) => d.outcome === "opened" || d.outcome === "closed").length >= MANDATE.maxActionsPerDay) {
+        record({ symbol, outcome: "skip", reasoning: "Signal (" + sig.reason + ") but the mandate's " + MANDATE.maxActionsPerDay + " actions/day limit is reached." });
+        continue;
+      }
+      const account = { source: "PAPER" as const, walletBalance: s.walletBalance, positions: s.positions, marginModeFor: () => "isolated" as const, fetchedAt: this.now() };
+      const data = await loadCircuitData(this.client, this.registry, symbol, { mode: "paper", liveEnvEnabled: false, account: { ...account, fetchedAt: this.now() }, actionsInLastHour: 0, now: this.now });
+      const r = runCircuit({ symbol, side: sig.side, notionalUsd: MANDATE.maxPositionNotionalUsd, leverage: MANDATE.maxLeverage, orderType: "market" }, data, policy);
+      const checks = r.verdict.checks.map((c) => c.id + " " + c.status + ": " + c.message);
+      if (r.verdict.decision !== "APPROVE" || !data.depth || !r.entryPrice.value) {
+        record({ symbol, outcome: "blocked", reasoning: "Signal: " + sig.reason + ". Referee BLOCK: " + r.verdict.violations.map((v) => v.id + " " + v.message).join("; ") + ".", checks });
+        continue;
+      }
+      s = paperOpen(s, symbol, sig.side, r.size.value!, r.entryPrice.value, MANDATE.maxLeverage, taker, ts);
+      st.actions.push(ts);
+      record({
+        symbol, outcome: "opened", checks,
+        reasoning: "Signal: " + sig.reason + ". Circuit: " + sig.side + " " + r.size.value + " at ≈ " + r.entryPrice.value + " (" + MANDATE.maxLeverage + "x, $" + r.notionalUsd.value + "), liquidation " + r.liquidation.distancePct.value + "% away. Referee APPROVE. Filled (PAPER); will be closed before the underlying opens.",
+      });
+    }
+    savePaper(this.files.vaultPaper, s);
+    ({ equity } = await this.vaultEquity(s));
+    st.peakEquity = D.max(dec(st.peakEquity), equity).toString();
+    st.actions = st.actions.filter((t) => Date.parse(t) > this.now() - 7 * 86_400_000);
+    writeFileSync(this.files.vaultState, JSON.stringify(st, null, 2));
+    return { label: "PAPER", ts, decisions, status: await this.vaultStatus() };
   }
 
   // ── credit (P1) ────────────────────────────────────────────────────────────

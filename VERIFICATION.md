@@ -94,3 +94,8 @@ Script: `pnpm phase0` (`scripts/phase0-verify.ts`). Result: **13/13 calls OK** (
 43. Recovery boundary price: solved J = 1 and c = F for P with V and D fixed; the higher price binds (doc: $0.35 at V = D = 400 with 800 ADA; $0.425 at V = 360).
 44. Fix amounts: bisection with decimal.js (repay R reduces D; extra collateral Δq raises C), minimum reaching J ≤ J* and c ≥ F*; R rounded up to cents, Δq up to asset_prec. Tests confirm one cent / one 10⁻⁶ unit less does not reach the targets.
 45. Inputs: q, D, s user-entered (no per-user endpoint); P from /v2/credit/collateral-assets (fresh only if price_fresh and now < price_expires_at, else STALE warning); S from /v2/vault/:id of the approved vault in /v2/credit/settings.
+
+## Phase 9 — 2026-10-22 ~20:42 UTC
+46. Fair value (decided details): reference index — equities → NAS100-USD, NAS100 ↔ SP500; regression on aligned weekday 1h simple returns of Strike mark klines; band uses max(hours since close, 1). Live: NVDA β 1.31, R² 0.48 (n=1653); COIN/CRCL/GOOGL R² < 0.2 → "no reliable band"; unknown-session listings → none.
+47. Streamable HTTP: SDK StreamableHTTPServerTransport stateless (`sessionIdGenerator: undefined`, JSON responses), DNS-rebinding protection with allowedHosts 127.0.0.1/localhost — verified a foreign Host header returns 403.
+48. Mandate Vault is PAPER only (no VAULT_ID trading). Mandate → referee policy: concentration set to 100% (positions are capped at 1/3 of exposure), closed-session leverage cap = mandate max (it trades closed sessions by design), human confirmation off for the paper vault only.

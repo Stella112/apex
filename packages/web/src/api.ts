@@ -24,10 +24,14 @@ export const api = {
   log: (limit = 100) => j<{ entries: LogEntry[] }>(`/api/log?limit=${limit}`),
   verify: () => j<{ ok: boolean; entries: number; firstBadSeq?: number; error?: string; publicKey: string }>("/api/log/verify"),
   policy: () => j<Policy>("/api/policy"),
+  vault: () => j<VaultStatus>("/api/vault"),
+  vaultDecisions: () => j<{ decisions: LogEntry[] }>("/api/vault/decisions"),
+  vaultTick: () => post<unknown>("/api/vault/tick", {}),
   creditHealth: (b: Record<string, string>) => post<CreditHealth>("/api/credit/health", b),
   creditGrid: (b: Record<string, string>) => post<CreditGrid>("/api/credit/grid", b),
 };
 
+export type VaultStatus = Awaited<ReturnType<import("@apex/core").Apex["vaultStatus"]>>;
 export type FairValue = import("@apex/core").FairValue;
 export type CreditHealth = Awaited<ReturnType<import("@apex/core").Apex["creditLineHealth"]>>;
 export type CreditGrid = Awaited<ReturnType<import("@apex/core").Apex["creditStressGrid"]>>;

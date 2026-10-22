@@ -1,0 +1,16 @@
+{
+  "name": "Apex Weekend Reversion Mandate",
+  "mode": "PAPER",
+  "description": "While a stock or index perp's underlying market is closed, trade back toward the fair-value implied price when the mark strays more than 1.5 band half-widths away; always flat before the next underlying open.",
+  "allowedSymbols": ["NVDA-USD", "TSLA-USD", "MU-USD", "SNDK-USD", "AAOI-USD", "NAS100-USD", "SP500-USD"],
+  "maxLeverage": 2,
+  "maxPositionNotionalUsd": "300",
+  "maxExposureUsd": "900",
+  "maxDrawdownPct": "10",
+  "maxActionsPerDay": 6,
+  "minLiquidationDistancePct": "25",
+  "weekend": { "onlyTradeWhenUnderlyingClosed": true, "flatMinutesBeforeOpen": 15 },
+  "signal": { "deviationMultipleOfHalfWidth": "1.5", "requireReliableBand": true },
+  "emergency": { "flattenAllIfDrawdownPctAbove": "8" },
+  "startingEquityUsd": "1000"
+}
