@@ -1,0 +1,11 @@
+apex-mcp ready (env mainnet, mode paper, keys absent)
+tools (16): list_markets, get_market, get_account_summary, get_positions, get_order_history, simulate_trade, stress_test_position, weekend_risk_report, propose_protection, propose_trade, execute_proposal, cancel_order, get_policy, set_policy, get_decision_log, verify_log
+
+== list_markets
+15 Strike markets [LIVE]. Underlying closed or unknown: AAOI-USD, COIN-USD, CRCL-USD, CXMT-USD, DRAM-USD, GOOGL-USD, MINIMAX-USD, MU-USD, NVDA-USD, SKHYNIX-USD, SNDK-USD, SPCX-USD, TSLA-USD, UNITREE-USD, ZHIPU-USD. Classes come from Apex's cited session map where Strike labels a stock or index as "Crypto" (CATEGORY_MISMATCH note). Numbers are estimates from live Strike data, not guarantees. Apex does not give financial advice.
+
+== simulate_trade
+PAPER simulation — buy 4.7 NVDA-USD (market, 10x), notional $1000.44, est. entry 212.86, mark 212.7399607 [LIVE]. Liquidation ≈ 193.5090909 (9.04% away, isolated; isolated, iso_balance 100.04 (PAPER account)) [ESTIMATE]. Open fee ≈ $0.5002, slippage ≈ 5.64 bps, funding ≈ $0.0000/24h. Stress: 2% → $-20.56, 5% → $-50.56, 8% → $-80.55 [SCENARIO]. Referee: BLOCK — R1 Leverage 10x exceeds max 3x (underlying closed); R2 Position notional $1000.44 exceeds $500.00; R4 Concentration 50.02% exceeds 40.00%; R5 Liquidation distance 9.04% below 15.00%. Compliant alternative: buy 2.34 at 3x (≈ $498.09), liquidation ≈ 32.62% away, referee APPROVE. Numbers are estimates from live Strike data, not guarantees. Apex does not give financial advice.
+
+== weekend_risk_report
+Weekend risk (PAPER, positions: LIVE (vault 3fd3ab0b-318b-4f99-9ad6-66e9e917bea8, public read-only — not your account)). 17/20 non-crypto markets have a closed or unknown underlying session (unknown, scored conservatively: CXMT-USD, DRAM-USD, MINIMAX-USD, SKHYNIX-USD, SPCX-USD, UNITREE-USD, ZHIPU-USD). 33 position(s): none with MEDIUM/HIGH gap risk. Use propose_protection to turn a suggestion into an executable proposal. Logged as decision #4. Numbers are estimates from live Strike data, not guarantees. Apex does not give financial advice.

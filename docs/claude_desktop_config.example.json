@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "apex": {
+      "command": "node",
+      "args": ["C:\STRIKE\apex\packages\mcp\dist\index.js"]
+    }
+  }
+}

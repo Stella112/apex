@@ -68,6 +68,19 @@ export interface ExecutionResult {
   logSeq: number;
 }
 
+/** Run async work with bounded concurrency (keeps a 20-market report well under MCP's 60 s timeout). */
+export async function mapLimit<T, R>(items: T[], limit: number, fn: (t: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let i = 0;
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) {
+      const k = i++;
+      out[k] = await fn(items[k]!);
+    }
+  }));
+  return out;
+}
+
 const hashAction = (a: Action) => bytesToHex(sha256(utf8ToBytes(canonicalJSON(a))));
 
 export class Apex {
@@ -253,15 +266,17 @@ export class Apex {
   }
 
   async positionsWithRisk(source: PositionSource = this.defaultSource(), force = false): Promise<{ label: string; positions: PositionGapRisk[]; asOf: string }> {
-    const views = await this.positionViews(source);
     const ms = await this.markets();
     const policy = this.getPolicy();
-    const symbols = [...new Set(views.positions.map((p) => p.symbol))];
+    // Slow history reads first; account/positions last so they are fresh for the referee (R8).
+    const pre = await this.positionViews(source);
+    const symbols = [...new Set(pre.positions.map((p) => p.symbol))];
     const distMap = new Map<string, { dist: GapDistribution; flags: Flag[] }>();
-    for (const s of symbols) {
+    await mapLimit(symbols, 8, async (s) => {
       const m = ms.find((x) => x.symbol === s);
       if (m) distMap.set(s, await this.dist(m));
-    }
+    });
+    const views = await this.positionViews(source);
     const data: CircuitData = {
       now: this.now(), mode: this.mode, liveEnvEnabled: this.apexMode === "live", market: undefined, markets: views.markets,
       marketsFetchedAt: views.marketsFetchedAt, depth: null, depthFetchedAt: this.now(), feeTiers: null,
@@ -283,11 +298,10 @@ export class Apex {
   async weekendRiskReport(source: PositionSource = this.defaultSource()) {
     const ms = await this.markets();
     const tradfi = ms.filter((m) => m.class !== "crypto");
-    const markets: MarketGapStats[] = [];
-    for (const m of tradfi) {
+    const markets: MarketGapStats[] = await mapLimit(tradfi, 8, async (m) => {
       const [k, depth] = await Promise.all([loadMarkHistory(this.client, m.symbol, 3, this.now()), getDepth(this.client, m.symbol).catch(() => null)]);
-      markets.push(marketGapStats(m, k, depth?.data ?? null, this.now()).stats);
-    }
+      return marketGapStats(m, k, depth?.data ?? null, this.now()).stats;
+    });
     const positions = await this.positionsWithRisk(source);
     const entry = this.log.append("weekend_report", "scenario", {
       source, positions: positions.positions.map((p) => ({ symbol: p.symbol, band: p.band, pGapPct: p.pGapPct, method: p.method, samples: p.samples })),
@@ -307,14 +321,15 @@ export class Apex {
 
   // ── Circuit ────────────────────────────────────────────────────────────────
   private async circuitData(symbol: string, source: PositionSource): Promise<CircuitData> {
-    const views = await this.positionViews(source).catch(() => null);
-    const account = views ? this.accountView(views, source) : null;
     const m = await this.market(symbol);
     let gap: CircuitData["gap"];
     if (m.class !== "crypto") {
       const { dist } = await this.dist(m);
       gap = { pGap: null, band: "N/A", method: dist.method, samples: dist.samples };
     }
+    // Account read last so its age at evaluation stays inside the 15 s freshness limit.
+    const views = await this.positionViews(source).catch(() => null);
+    const account = views ? this.accountView(views, source) : null;
     return loadCircuitData(this.client, this.registry, symbol, {
       mode: this.mode, liveEnvEnabled: this.apexMode === "live", account, actionsInLastHour: this.actionsInLastHour(), now: this.now, ...(gap ? { gap } : {}),
     });
