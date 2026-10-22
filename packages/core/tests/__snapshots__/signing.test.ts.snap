@@ -1,0 +1,3 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`signing > produces a stable, verifiable signature for a fixed key, nonce and timestamp 1`] = `"88cb982ced9cda8d47e820d0bfa299e2c54abd3a1ca0efc0d08517c030802fd9de3b8acf9c5b5358c78b54413ca714c50cdf76045880714d82f469f9b9ead905"`;

@@ -53,3 +53,12 @@ Script: `pnpm phase0` (`scripts/phase0-verify.ts`). Result: **13/13 calls OK** (
 
 ### Tooling
 - Dev dependency `@types/node` added (types only, needed for TS strict with `node:` imports). Installed versions: typescript ^7.0.2, tsx ^4.23.15, vitest ^5.0.5, dotenv ^18.0.9.
+
+## Phase 1 — 2026-10-22 ~19:40 UTC
+
+18. **Account reads verified live without keys** via the documented public `vault_id` selector (strike-auth: FlexibleAuth; user-api.yaml `VaultIdQuery`) on the SLP vault: `GET /v2/account`, `/v2/positions`, `/v2/openOrders?symbol=NVDA-USD`, `/v2/history/order?symbol=NVDA-USD&limit=5` all 200. Fixtures: `account_vault_slp.json`, `positions_vault_slp.json`, `openOrders_vault_slp_NVDA.json`, `history_order_vault_slp_NVDA.json`. Position fields match §4.4 exactly (`leverage` is an integer; `size` signed string; `liquidation_price` `"0"` = none).
+19. **Casing differs by endpoint (VERIFIED-LIVE):** `/v2/openOrders` returns PascalCase engine keys (`ID, ClientOrderID, Side, Status, Type, Size, Filled, Price, StopPrice, ReduceOnly, …`); `/v2/history/order` returns snake_case (`id, client_order_id, side, status, …`, `client_order_id`/`close_reason` may be `null`). Order enums are lowercase in both (`buy`, `limit`, `open`, `GTC`).
+20. **B1 resolved (Maris):** a cited `config/sessions.ts` entry overrides the API category, with a `CATEGORY_MISMATCH` note. Smoke run shows the note on AAOI, COIN, CRCL, DRAM, GOOGL, MINIMAX, SP500, UNITREE, ZHIPU.
+21. **NYSE calendar (VERIFIED, nyse.com/trade/hours-calendars fetched 2026-10-22):** core session 09:30–16:00 ET; 2026 remaining: Thu Nov 26 closed, Fri Nov 27 13:00 early close, Thu Dec 24 13:00 early close, Fri Dec 25 closed — matches CLAUDE.md §6.1. 2027 holidays also loaded. Nasdaq is **assumed** to share the calendar.
+22. **Assumed:** CME Globex hours (no CME holidays modeled); SP500/NAS100 follow the US cash session; listing venue (Nasdaq vs NYSE) per equity is informational only.
+23. Dev dependency `@types/luxon` added (types only).
