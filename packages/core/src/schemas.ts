@@ -193,3 +193,41 @@ export const HistoryOrders = z.object({ count: z.number().int(), orders: z.array
 export type HistoryOrder = z.infer<typeof HistoryOrder>;
 
 export const ServerTime = z.object({ serverTime: ms });
+
+// GET /v2/markets (main host, public) — margin tiers etc. fixtures/live/markets.json; strike-calculations skill.
+export const MarginTier = z.object({
+  max_notional: decStr,
+  max_leverage: z.number().int(),
+  maintenance_margin_rate: decStr,
+  maintenance_amount: decStr,
+});
+export type MarginTier = z.infer<typeof MarginTier>;
+export const MarketInfo = z.object({
+  symbol: z.string(),
+  status: z.string(),
+  quote_prec: z.number().int(),
+  default_leverage: z.number().int(),
+  margin_tiers: z.array(MarginTier).min(1),
+  mark_price: decStr,
+  index_price: decStr,
+  funding_rate: decStr,
+  next_funding_time: ms,
+  liquidation_fee_rate: decStr,
+  trigger_protect: decStr,
+});
+export type MarketInfo = z.infer<typeof MarketInfo>;
+export const Markets = z.object({ markets: z.record(z.string(), MarketInfo) });
+
+// GET /v2/balances — one-element array (fixtures/live/balances_vault_slp.json)
+export const Balance = z.object({
+  asset: z.string(),
+  walletBalance: decStr,
+  unrealizedPnl: decStr,
+  marginBalance: decStr,
+  maintMargin: decStr,
+  positionInitialMargin: decStr,
+  availableBalance: decStr,
+  updateTime: ms,
+});
+export const Balances = z.array(Balance).min(1);
+export type Balance = z.infer<typeof Balance>;

@@ -1,0 +1,726 @@
+{
+ "mode": "paper",
+ "symbol": "NVDA-USD",
+ "side": "buy",
+ "orderType": "market",
+ "leverage": 10,
+ "size": {
+  "value": "4.7",
+  "label": "ESTIMATE",
+  "basis": "notional ÷ mark, floored to step 0.01"
+ },
+ "notionalUsd": {
+  "value": "999.50",
+  "label": "ESTIMATE",
+  "basis": "size × depth walk over 1 level(s)"
+ },
+ "entryPrice": {
+  "value": "212.66",
+  "label": "ESTIMATE",
+  "basis": "depth walk over 1 level(s)"
+ },
+ "markPrice": {
+  "value": "212.50852834",
+  "label": "LIVE",
+  "basis": "GET /v2/markets mark_price"
+ },
+ "stale": {
+  "stale": false,
+  "reasons": []
+ },
+ "exchangeWarnings": [],
+ "liquidation": {
+  "price": {
+   "value": "193.3272727",
+   "label": "ESTIMATE",
+   "basis": "strike-calculations LP formula"
+  },
+  "distancePct": {
+   "value": "9.03",
+   "label": "ESTIMATE",
+   "basis": "|mark − liq| ÷ mark"
+  },
+  "marginMode": "isolated",
+  "basis": "isolated-equivalent: margin = notional / 10x (no account data)"
+ },
+ "fees": {
+  "takerRate": {
+   "value": "0.0005",
+   "label": "LIVE",
+   "basis": "GET /v2/fee-tiers tier 0"
+  },
+  "makerRate": {
+   "value": "-0.00005",
+   "label": "LIVE",
+   "basis": "GET /v2/fee-tiers tier 0 (negative = rebate)"
+  },
+  "openCostUsd": {
+   "value": "0.4998",
+   "label": "ESTIMATE",
+   "basis": "notional × taker"
+  },
+  "closeCostUsd": {
+   "value": "0.4994",
+   "label": "ESTIMATE",
+   "basis": "size × mark × taker (market close)"
+  },
+  "tierNote": "Base fee tier 0 used (account tier not read); referral/staking discounts not applied."
+ },
+ "slippage": {
+  "avgFill": {
+   "value": "212.66",
+   "label": "ESTIMATE",
+   "basis": "depth walk (GET /price/v2/depth)"
+  },
+  "slippageBpsVsMark": {
+   "value": "7.13",
+   "label": "ESTIMATE",
+   "basis": "|avg fill − mark| ÷ mark"
+  },
+  "slippageBpsVsBest": {
+   "value": "0.00",
+   "label": "ESTIMATE",
+   "basis": "|avg fill − best level| ÷ best"
+  },
+  "insufficientDepth": false,
+  "levelsUsed": 1
+ },
+ "funding": {
+  "hourlyRate": {
+   "value": "0",
+   "label": "LIVE",
+   "basis": "GET /v2/markets funding_rate (current-hour estimate)"
+  },
+  "costPerHourUsd": {
+   "value": "0.0000",
+   "label": "ESTIMATE",
+   "basis": "signed size × mark × hourly rate (+ = you pay)"
+  },
+  "costPer24hUsd": {
+   "value": "0.0000",
+   "label": "ESTIMATE",
+   "basis": "hourly estimate × 24, rate held constant"
+  }
+ },
+ "portfolio": {
+  "before": {
+   "totalNotionalUsd": {
+    "value": "0.00",
+    "label": "LIVE",
+    "basis": "positions × mark"
+   },
+   "effectiveLeverage": {
+    "value": null,
+    "label": "LIVE",
+    "basis": "total notional ÷ equity"
+   },
+   "concentrationPct": {
+    "value": "0.00",
+    "label": "LIVE",
+    "basis": "NVDA-USD notional ÷ total notional"
+   },
+   "marginUtilizationPct": {
+    "value": null,
+    "label": "LIVE",
+    "basis": "Σ initial margin ÷ equity"
+   }
+  },
+  "after": {
+   "totalNotionalUsd": {
+    "value": "998.79",
+    "label": "ESTIMATE",
+    "basis": "positions after fill × mark"
+   },
+   "effectiveLeverage": {
+    "value": "9.99",
+    "label": "ESTIMATE",
+    "basis": "total notional ÷ equity"
+   },
+   "concentrationPct": {
+    "value": "100.00",
+    "label": "ESTIMATE",
+    "basis": "NVDA-USD notional ÷ total notional"
+   },
+   "marginUtilizationPct": {
+    "value": "100.00",
+    "label": "ESTIMATE",
+    "basis": "Σ initial margin ÷ equity"
+   }
+  },
+  "accountSource": "no account data — portfolio shows this trade only; equity = its initial margin"
+ },
+ "stress": [
+  {
+   "movePct": "2",
+   "price": {
+    "value": "208.2584",
+    "label": "SCENARIO",
+    "basis": "mark −2%"
+   },
+   "pnlUsd": {
+    "value": "-20.69",
+    "label": "SCENARIO",
+    "basis": "(price − entry) × signed size, before fees"
+   },
+   "liquidated": false
+  },
+  {
+   "movePct": "5",
+   "price": {
+    "value": "201.8831",
+    "label": "SCENARIO",
+    "basis": "mark −5%"
+   },
+   "pnlUsd": {
+    "value": "-50.65",
+    "label": "SCENARIO",
+    "basis": "(price − entry) × signed size, before fees"
+   },
+   "liquidated": false
+  },
+  {
+   "movePct": "8",
+   "price": {
+    "value": "195.5078",
+    "label": "SCENARIO",
+    "basis": "mark −8%"
+   },
+   "pnlUsd": {
+    "value": "-80.62",
+    "label": "SCENARIO",
+    "basis": "(price − entry) × signed size, before fees"
+   },
+   "liquidated": false
+  },
+  {
+   "movePct": "12",
+   "price": {
+    "value": "187.0075",
+    "label": "SCENARIO",
+    "basis": "mark −12%"
+   },
+   "pnlUsd": {
+    "value": "-120.57",
+    "label": "SCENARIO",
+    "basis": "(price − entry) × signed size, before fees"
+   },
+   "liquidated": true
+  }
+ ],
+ "riskReward": null,
+ "weekend": {
+  "underlying": "open",
+  "hoursUntilNextOpen": {
+   "value": null,
+   "label": "ESTIMATE",
+   "basis": "https://www.nyse.com/markets/hours-calendars (fetched 2026-10-22; Nasdaq assumed to share the NYSE holiday calendar)"
+  },
+  "gap": null,
+  "notes": []
+ },
+ "verdict": {
+  "decision": "BLOCK",
+  "violations": [
+   {
+    "id": "R1",
+    "status": "fail",
+    "message": "Leverage 10x exceeds max 5x",
+    "numbers": {
+     "leverage": "10",
+     "max": "5",
+     "underlying": "open"
+    }
+   },
+   {
+    "id": "R2",
+    "status": "fail",
+    "message": "Position notional $999.50 exceeds $500.00",
+    "numbers": {
+     "positionNotionalUsd": "999.50",
+     "maxUsd": "500.00"
+    }
+   },
+   {
+    "id": "R4",
+    "status": "fail",
+    "message": "Concentration 49.98% exceeds 40.00%",
+    "numbers": {
+     "concentrationPct": "49.98",
+     "maxPct": "40.00"
+    }
+   },
+   {
+    "id": "R5",
+    "status": "fail",
+    "message": "Liquidation distance 9.03% below 15.00%",
+    "numbers": {
+     "liquidationDistancePct": "9.03",
+     "minPct": "15.00"
+    }
+   }
+  ],
+  "warnings": [],
+  "checks": [
+   {
+    "id": "R1",
+    "status": "fail",
+    "message": "Leverage 10x exceeds max 5x",
+    "numbers": {
+     "leverage": "10",
+     "max": "5",
+     "underlying": "open"
+    }
+   },
+   {
+    "id": "R2",
+    "status": "fail",
+    "message": "Position notional $999.50 exceeds $500.00",
+    "numbers": {
+     "positionNotionalUsd": "999.50",
+     "maxUsd": "500.00"
+    }
+   },
+   {
+    "id": "R3",
+    "status": "pass",
+    "message": "Portfolio notional $999.50 within $2000.00",
+    "numbers": {
+     "portfolioNotionalUsd": "999.50",
+     "maxUsd": "2000.00"
+    }
+   },
+   {
+    "id": "R4",
+    "status": "fail",
+    "message": "Concentration 49.98% exceeds 40.00%",
+    "numbers": {
+     "concentrationPct": "49.98",
+     "maxPct": "40.00"
+    }
+   },
+   {
+    "id": "R5",
+    "status": "fail",
+    "message": "Liquidation distance 9.03% below 15.00%",
+    "numbers": {
+     "liquidationDistancePct": "9.03",
+     "minPct": "15.00"
+    }
+   },
+   {
+    "id": "R6",
+    "status": "pass",
+    "message": "Class equity allowed",
+    "numbers": {
+     "class": "equity"
+    }
+   },
+   {
+    "id": "R7",
+    "status": "pass",
+    "message": "Market ACTIVE",
+    "numbers": {
+     "status": "ACTIVE"
+    }
+   },
+   {
+    "id": "R8",
+    "status": "pass",
+    "message": "Data fresh",
+    "numbers": {
+     "markAgeMs": "925",
+     "markLimitMs": "15000",
+     "depthAgeMs": "923",
+     "depthLimitMs": "10000",
+     "accountAgeMs": "0",
+     "accountLimitMs": "15000"
+    }
+   },
+   {
+    "id": "R9",
+    "status": "pass",
+    "message": "Action 1 of 10 this hour",
+    "numbers": {
+     "actionsInLastHour": "0",
+     "max": "10"
+    }
+   },
+   {
+    "id": "R10",
+    "status": "pass",
+    "message": "Passes exchange filters",
+    "numbers": {
+     "size": "4.7",
+     "minNotional": "10",
+     "notionalUsd": "999.50"
+    }
+   },
+   {
+    "id": "R11",
+    "status": "skipped",
+    "message": "Not a protective order",
+    "numbers": {}
+   },
+   {
+    "id": "R12",
+    "status": "pass",
+    "message": "PAPER mode",
+    "numbers": {
+     "mode": "paper",
+     "stage": "propose",
+     "liveEnvEnabled": "false",
+     "humanConfirmed": "false"
+    }
+   }
+  ],
+  "alternative": {
+   "kind": "open",
+   "symbol": "NVDA-USD",
+   "side": "buy",
+   "size": "2.35",
+   "orderType": "market",
+   "leverage": 5
+  }
+ },
+ "alternativeReport": {
+  "mode": "paper",
+  "symbol": "NVDA-USD",
+  "side": "buy",
+  "orderType": "market",
+  "leverage": 5,
+  "size": {
+   "value": "2.35",
+   "label": "ESTIMATE",
+   "basis": "user size"
+  },
+  "notionalUsd": {
+   "value": "499.75",
+   "label": "ESTIMATE",
+   "basis": "size × depth walk over 1 level(s)"
+  },
+  "entryPrice": {
+   "value": "212.66",
+   "label": "ESTIMATE",
+   "basis": "depth walk over 1 level(s)"
+  },
+  "markPrice": {
+   "value": "212.50852834",
+   "label": "LIVE",
+   "basis": "GET /v2/markets mark_price"
+  },
+  "stale": {
+   "stale": false,
+   "reasons": []
+  },
+  "exchangeWarnings": [],
+  "liquidation": {
+   "price": {
+    "value": "171.8464646",
+    "label": "ESTIMATE",
+    "basis": "strike-calculations LP formula"
+   },
+   "distancePct": {
+    "value": "19.13",
+    "label": "ESTIMATE",
+    "basis": "|mark − liq| ÷ mark"
+   },
+   "marginMode": "isolated",
+   "basis": "isolated-equivalent: margin = notional / 5x (no account data)"
+  },
+  "fees": {
+   "takerRate": {
+    "value": "0.0005",
+    "label": "LIVE",
+    "basis": "GET /v2/fee-tiers tier 0"
+   },
+   "makerRate": {
+    "value": "-0.00005",
+    "label": "LIVE",
+    "basis": "GET /v2/fee-tiers tier 0 (negative = rebate)"
+   },
+   "openCostUsd": {
+    "value": "0.2499",
+    "label": "ESTIMATE",
+    "basis": "notional × taker"
+   },
+   "closeCostUsd": {
+    "value": "0.2497",
+    "label": "ESTIMATE",
+    "basis": "size × mark × taker (market close)"
+   },
+   "tierNote": "Base fee tier 0 used (account tier not read); referral/staking discounts not applied."
+  },
+  "slippage": {
+   "avgFill": {
+    "value": "212.66",
+    "label": "ESTIMATE",
+    "basis": "depth walk (GET /price/v2/depth)"
+   },
+   "slippageBpsVsMark": {
+    "value": "7.13",
+    "label": "ESTIMATE",
+    "basis": "|avg fill − mark| ÷ mark"
+   },
+   "slippageBpsVsBest": {
+    "value": "0.00",
+    "label": "ESTIMATE",
+    "basis": "|avg fill − best level| ÷ best"
+   },
+   "insufficientDepth": false,
+   "levelsUsed": 1
+  },
+  "funding": {
+   "hourlyRate": {
+    "value": "0",
+    "label": "LIVE",
+    "basis": "GET /v2/markets funding_rate (current-hour estimate)"
+   },
+   "costPerHourUsd": {
+    "value": "0.0000",
+    "label": "ESTIMATE",
+    "basis": "signed size × mark × hourly rate (+ = you pay)"
+   },
+   "costPer24hUsd": {
+    "value": "0.0000",
+    "label": "ESTIMATE",
+    "basis": "hourly estimate × 24, rate held constant"
+   }
+  },
+  "portfolio": {
+   "before": {
+    "totalNotionalUsd": {
+     "value": "0.00",
+     "label": "LIVE",
+     "basis": "positions × mark"
+    },
+    "effectiveLeverage": {
+     "value": null,
+     "label": "LIVE",
+     "basis": "total notional ÷ equity"
+    },
+    "concentrationPct": {
+     "value": "0.00",
+     "label": "LIVE",
+     "basis": "NVDA-USD notional ÷ total notional"
+    },
+    "marginUtilizationPct": {
+     "value": null,
+     "label": "LIVE",
+     "basis": "Σ initial margin ÷ equity"
+    }
+   },
+   "after": {
+    "totalNotionalUsd": {
+     "value": "499.40",
+     "label": "ESTIMATE",
+     "basis": "positions after fill × mark"
+    },
+    "effectiveLeverage": {
+     "value": "5.00",
+     "label": "ESTIMATE",
+     "basis": "total notional ÷ equity"
+    },
+    "concentrationPct": {
+     "value": "100.00",
+     "label": "ESTIMATE",
+     "basis": "NVDA-USD notional ÷ total notional"
+    },
+    "marginUtilizationPct": {
+     "value": "100.00",
+     "label": "ESTIMATE",
+     "basis": "Σ initial margin ÷ equity"
+    }
+   },
+   "accountSource": "no account data — portfolio shows this trade only; equity = its initial margin"
+  },
+  "stress": [
+   {
+    "movePct": "2",
+    "price": {
+     "value": "208.2584",
+     "label": "SCENARIO",
+     "basis": "mark −2%"
+    },
+    "pnlUsd": {
+     "value": "-10.34",
+     "label": "SCENARIO",
+     "basis": "(price − entry) × signed size, before fees"
+    },
+    "liquidated": false
+   },
+   {
+    "movePct": "5",
+    "price": {
+     "value": "201.8831",
+     "label": "SCENARIO",
+     "basis": "mark −5%"
+    },
+    "pnlUsd": {
+     "value": "-25.33",
+     "label": "SCENARIO",
+     "basis": "(price − entry) × signed size, before fees"
+    },
+    "liquidated": false
+   },
+   {
+    "movePct": "8",
+    "price": {
+     "value": "195.5078",
+     "label": "SCENARIO",
+     "basis": "mark −8%"
+    },
+    "pnlUsd": {
+     "value": "-40.31",
+     "label": "SCENARIO",
+     "basis": "(price − entry) × signed size, before fees"
+    },
+    "liquidated": false
+   },
+   {
+    "movePct": "12",
+    "price": {
+     "value": "187.0075",
+     "label": "SCENARIO",
+     "basis": "mark −12%"
+    },
+    "pnlUsd": {
+     "value": "-60.28",
+     "label": "SCENARIO",
+     "basis": "(price − entry) × signed size, before fees"
+    },
+    "liquidated": false
+   }
+  ],
+  "riskReward": null,
+  "weekend": {
+   "underlying": "open",
+   "hoursUntilNextOpen": {
+    "value": null,
+    "label": "ESTIMATE",
+    "basis": "https://www.nyse.com/markets/hours-calendars (fetched 2026-10-22; Nasdaq assumed to share the NYSE holiday calendar)"
+   },
+   "gap": null,
+   "notes": []
+  },
+  "verdict": {
+   "decision": "APPROVE",
+   "violations": [],
+   "warnings": [],
+   "checks": [
+    {
+     "id": "R1",
+     "status": "pass",
+     "message": "Leverage 5x within max 5x",
+     "numbers": {
+      "leverage": "5",
+      "max": "5",
+      "underlying": "open"
+     }
+    },
+    {
+     "id": "R2",
+     "status": "pass",
+     "message": "Position notional $499.75 within $500.00",
+     "numbers": {
+      "positionNotionalUsd": "499.75",
+      "maxUsd": "500.00"
+     }
+    },
+    {
+     "id": "R3",
+     "status": "pass",
+     "message": "Portfolio notional $499.75 within $2000.00",
+     "numbers": {
+      "portfolioNotionalUsd": "499.75",
+      "maxUsd": "2000.00"
+     }
+    },
+    {
+     "id": "R4",
+     "status": "pass",
+     "message": "Concentration 24.99% within 40.00%",
+     "numbers": {
+      "concentrationPct": "24.99",
+      "maxPct": "40.00"
+     }
+    },
+    {
+     "id": "R5",
+     "status": "pass",
+     "message": "Liquidation distance 19.13% ≥ 15.00%",
+     "numbers": {
+      "liquidationDistancePct": "19.13",
+      "minPct": "15.00"
+     }
+    },
+    {
+     "id": "R6",
+     "status": "pass",
+     "message": "Class equity allowed",
+     "numbers": {
+      "class": "equity"
+     }
+    },
+    {
+     "id": "R7",
+     "status": "pass",
+     "message": "Market ACTIVE",
+     "numbers": {
+      "status": "ACTIVE"
+     }
+    },
+    {
+     "id": "R8",
+     "status": "pass",
+     "message": "Data fresh",
+     "numbers": {
+      "markAgeMs": "925",
+      "markLimitMs": "15000",
+      "depthAgeMs": "923",
+      "depthLimitMs": "10000",
+      "accountAgeMs": "0",
+      "accountLimitMs": "15000"
+     }
+    },
+    {
+     "id": "R9",
+     "status": "pass",
+     "message": "Action 1 of 10 this hour",
+     "numbers": {
+      "actionsInLastHour": "0",
+      "max": "10"
+     }
+    },
+    {
+     "id": "R10",
+     "status": "pass",
+     "message": "Passes exchange filters",
+     "numbers": {
+      "size": "2.35",
+      "minNotional": "10",
+      "notionalUsd": "499.75"
+     }
+    },
+    {
+     "id": "R11",
+     "status": "skipped",
+     "message": "Not a protective order",
+     "numbers": {}
+    },
+    {
+     "id": "R12",
+     "status": "pass",
+     "message": "PAPER mode",
+     "numbers": {
+      "mode": "paper",
+      "stage": "propose",
+      "liveEnvEnabled": "false",
+      "humanConfirmed": "false"
+     }
+    }
+   ]
+  }
+ }
+}
+
+LIQUIDATION CHECK (SLP vault 3fd3ab0b-318b-4f99-9ad6-66e9e917bea8, public): 33/33 within 1%; max diff 0%

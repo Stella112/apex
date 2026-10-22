@@ -68,3 +68,10 @@ Script: `pnpm phase0` (`scripts/phase0-verify.ts`). Result: **13/13 calls OK** (
 25. **Assumed:** stop orders validated against both LOT_SIZE and MARKET_LOT_SIZE; MIN_NOTIONAL also applied to reduce-only orders (conservative — whether Strike exempts reduce-only from MIN_NOTIONAL is undocumented).
 26. **Open interpretation (B3):** R4 concentration denominator.
 27. Decision log: hash = sha256(prevHash + canonicalJSON(entry sans hash/sig)), Ed25519 over the 32 hash bytes with a separate key (`LOG_SIGNING_KEY` or generated `keys/log_signing.key`).
+
+## Phase 3 — 2026-10-22 ~19:57 UTC
+28. `GET /v2/markets` (main host, public) VERIFIED-LIVE: `{markets:{<symbol>:{margin_tiers[{max_notional,max_leverage,maintenance_margin_rate,maintenance_amount}], quote_prec, default_leverage, mark_price, funding_rate, next_funding_time, liquidation_fee_rate, order_* filters, ...}}}` (fixtures/live/markets.json). NVDA max leverage 20x, tier 0 MMR 0.01 up to $50k.
+29. `GET /v2/balances?vault_id=` VERIFIED-LIVE: one-element array, `walletBalance` etc. (fixtures/live/balances_vault_slp.json).
+30. **Liquidation formula VERIFIED-LIVE:** strike-calculations LP/BP formulas reproduce Strike's `liquidation_price` for **33/33** SLP vault positions (cross profile, 33 positions) — within 0.002% on fixtures, 0% on a simultaneous live fetch. Test: `circuit.test.ts` "VALIDATION"; live: `pnpm circuit`.
+31. **Decided (Claude, per Maris delegation):** with no account data, Circuit treats a new trade as isolated with iso_balance = ceil(notional/leverage) and labels it "isolated-equivalent". With a LIVE account, it uses the account's margin mode per symbol (`symbol_settings`, else `default_margin_mode`).
+32. Fees: base tier 0 only (taker 0.0005, maker −0.00005); account tier, referral and staking discounts not applied — labeled in output.

@@ -3,7 +3,7 @@
 // Without keys: only a public `vault_id` selector is allowed (read-only display, CLAUDE.md §6.8).
 import { MissingKeysError } from "./errors.js";
 import type { Query, StrikeClient } from "./http.js";
-import { Account, HistoryOrders, OpenOrders, Positions } from "./schemas.js";
+import { Account, Balances, HistoryOrders, OpenOrders, Positions } from "./schemas.js";
 import type { z } from "zod";
 
 export interface AccountScope {
@@ -27,3 +27,4 @@ export const getOpenOrders = (c: StrikeClient, scope: AccountScope = {}, symbol?
   read(c, "/v2/openOrders", { symbol }, scope, OpenOrders);
 export const getOrderHistory = (c: StrikeClient, scope: AccountScope = {}, opts: { symbol?: string; limit?: number } = {}) =>
   read(c, "/v2/history/order", { symbol: opts.symbol, limit: opts.limit }, scope, HistoryOrders);
+export const getBalances = (c: StrikeClient, scope: AccountScope = {}) => read(c, "/v2/balances", {}, scope, Balances);

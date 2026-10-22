@@ -10,3 +10,6 @@ export * from "./registry.js";
 export * from "./policy.js";
 export * from "./referee.js";
 export * from "./decision-log.js";
+export * from "./margin.js";
+export * from "./circuit.js";
+export * from "./circuit-data.js";

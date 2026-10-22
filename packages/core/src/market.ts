@@ -3,7 +3,7 @@
 import type { Fetched, StrikeClient } from "./http.js";
 import {
   CollateralAssets, CreditSettings, Depth, ExchangeInfo, FeeTiers, type Kline, Klines, MarkPrices,
-  MarketStats, Vault, VaultList,
+  MarketStats, Markets, Vault, VaultList,
 } from "./schemas.js";
 
 export const KLINE_INTERVALS = ["1m", "3m", "5m", "15m", "30m", "1h", "2h", "4h", "6h", "8h", "12h", "1d", "3d", "1w", "1M"] as const;
@@ -43,3 +43,5 @@ export async function getKlines(c: StrikeClient, q: KlineQuery): Promise<Fetched
     .map((r): Kline => ({ openTime: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5], closeTime: r[6] }));
   return { ...res, data: rows };
 }
+
+export const getMarkets = (c: StrikeClient) => c.publicGet("/v2/markets", undefined, Markets);
