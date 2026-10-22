@@ -1,0 +1,9 @@
+NVDA-USD: proposal ff6d2fd1-f02c-461e-b116-a7d0a1c6bcde APPROVE — buy 2.11 NVDA-USD market at 3x (≈ $448.90); liq 32.66% away
+  execute → filled (PAPER) [PAPER] log #7
+SKHYNIX-USD: proposal 1b812f84-80a2-4cc9-bcb8-d910fbeaff4b APPROVE — buy 0.49 SKHYNIX-USD market at 3x (≈ $440.51); liq 32.78% away
+  execute → filled (PAPER) [PAPER] log #10
+PAPER NVDA-USD long 2.11 liq 143.2217435013643544 (32.65%) p_gap 0.0% LOW (EMPIRICAL, n=97) suggestions: 0
+PAPER SKHYNIX-USD long 0.49 liq 605.3803339517625232 (32.78%) p_gap 0.0% LOW (MODELED, n=0) suggestions: 0
+protect: Reduce-only sell stop for 0.49 at 696.1 (mark 900.64851, liquidation 605.38033); PnL at stop ≈ $-99.42 before fees. A stop does not protect against a gap through it. → APPROVE
+  execute → resting (PAPER simulated stop) [PAPER] log #12
+verify_log: {"ok":true,"entries":12,"publicKey":"4b6704b4f3e5e502db811a40948f86aafaf98a9fd3a483752629f9c4d8462bfd","file":"C:\\STRIKE\\apex\\logs\\decisions.jsonl"}

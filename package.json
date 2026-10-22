@@ -11,7 +11,9 @@
     "phase0": "tsx scripts/phase0-verify.ts",
     "smoke": "tsx scripts/smoke-live.ts",
     "circuit": "tsx scripts/circuit-live.ts",
-    "weekend": "tsx scripts/weekend-live.ts"
+    "weekend": "tsx scripts/weekend-live.ts",
+    "demo:seed": "tsx scripts/demo-seed.ts",
+    "mcp:smoke": "tsx scripts/mcp-smoke.ts"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",

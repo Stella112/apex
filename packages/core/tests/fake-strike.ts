@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Apex } from "../src/service.js";
 import { StrikeClient } from "../src/http.js";
+import { parseApiWalletKey } from "../src/signing.js";
 import { fixture } from "./fixtures.js";
 
 /** Thu 2026-10-22 ~15:28 ET, the fixture capture time (US session open). */
@@ -48,4 +49,53 @@ export function fakeApex(opts: { now?: () => number; stateDir?: string } = {}) {
   const stateDir = opts.stateDir ?? join(mkdtempSync(join(tmpdir(), "apex-state-")), "logs");
   const apex = new Apex({ env: "mainnet", apexMode: "paper", stateDir, logSigningKey: "33".repeat(32), client, now });
   return { apex, calls: f.calls, advance: (ms: number) => { t += ms; }, stateDir };
+}
+
+/** LIVE-mode fake: own account with one isolated NVDA long, accepting writes and reconciling. */
+export function fakeLiveApex() {
+  const SEED = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60";
+  const PUB = "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a";
+  const base = fakeFetch();
+  const writes: Array<{ method: string; path: string; body: unknown; headers: Record<string, string> }> = [];
+  const orders = new Map<string, number>();
+  const ownPosition = {
+    id: 1, symbol: "NVDA-USD", margin_mode: "isolated", leverage: 10, size: "2", entry_price: "212.00", iso_balance: "42.40",
+    accumulated_funding_fees: "0", upnl: "0", maintenance_margin: "4.24", bankruptcy_price: "190.8", liquidation_price: "192.7272727",
+    create_timestamp: FIXTURE_NOW - 3600_000, update_timestamp: FIXTURE_NOW - 60_000,
+  };
+  const impl = (async (input: string | URL | Request, init?: RequestInit) => {
+    const url = new URL(String(input));
+    const method = init?.method ?? "GET";
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    if (method !== "GET") {
+      writes.push({ method, path: url.pathname, body: init?.body ? JSON.parse(String(init.body)) : undefined, headers });
+      const b = JSON.parse(String(init?.body ?? "{}")) as { client_order_id?: string; symbol?: string };
+      if (url.pathname === "/v2/order") {
+        orders.set(b.client_order_id!, 0);
+        return new Response(JSON.stringify({ client_order_id: b.client_order_id, symbol: b.symbol, status: "pending", sequence_id: 1 }), { status: 201 });
+      }
+      return new Response(JSON.stringify({ error: "fake: unsupported write" }), { status: 400 });
+    }
+    if (url.pathname === "/v2/order") {
+      const id = url.searchParams.get("client_order_id")!;
+      const n = orders.get(id);
+      if (n === undefined || n === 0) {
+        if (n !== undefined) orders.set(id, 1);
+        return new Response(JSON.stringify({ error: "order not found" }), { status: 404 });
+      }
+      return new Response(JSON.stringify({ ID: 77, ClientOrderID: id, Symbol: "NVDA-USD", CloseReason: "", Side: "sell", Status: "untriggered", Type: "stop", Size: "2", Filled: "0", StopPrice: "180" }), { status: 200 });
+    }
+    if (url.pathname === "/v2/positions" && !url.searchParams.get("vault_id")) {
+      return new Response(JSON.stringify({ count: 1, positions: [ownPosition] }), { status: 200 });
+    }
+    if (url.pathname === "/v2/balances" && !url.searchParams.get("vault_id")) {
+      return new Response(JSON.stringify([{ asset: "USDT", walletBalance: "1000", unrealizedPnl: "0", marginBalance: "1000", maintMargin: "4.24", positionInitialMargin: "42.4", availableBalance: "950", updateTime: FIXTURE_NOW }]), { status: 200 });
+    }
+    return base.impl(input, init);
+  }) as typeof fetch;
+  const t = FIXTURE_NOW;
+  const client = new StrikeClient({ env: "mainnet", fetchImpl: impl, now: () => t, key: parseApiWalletKey(PUB, SEED) });
+  const stateDir = join(mkdtempSync(join(tmpdir(), "apex-live-")), "logs");
+  const apex = new Apex({ env: "mainnet", apexMode: "live", stateDir, logSigningKey: "44".repeat(32), client, now: () => t });
+  return { apex, writes, ownPosition };
 }
