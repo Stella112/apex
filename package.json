@@ -14,7 +14,8 @@
     "circuit": "tsx scripts/circuit-live.ts",
     "weekend": "tsx scripts/weekend-live.ts",
     "demo:seed": "tsx scripts/demo-seed.ts",
-    "mcp:smoke": "tsx scripts/mcp-smoke.ts"
+    "mcp:smoke": "tsx scripts/mcp-smoke.ts",
+    "mcp:http": "node packages/mcp/dist/http.js"
   },
   "devDependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",

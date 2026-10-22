@@ -1,0 +1,4 @@
+tools over HTTP: 19
+NVDA-USD fair value (ESTIMATE): implied 212.216712, band 210.9203287–213.5130954 (±0.611%), mark 212.60325996 is 0.182% from implied. β 1.306 on NAS100-USD, R² 0.480, n=1653; band ±2·σ_resid·√h. Numbers are estimates from live Strike data, not guarantees. Apex does not give financial advice.
+Policy: max 5x (3x when the underlying is closed/unknown), $500 per position, $2000 portfolio, 40% concentration, ≥15% liquidation distance, 10 actions/hour.
+foreign Host header ? 403
