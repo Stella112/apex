@@ -1,0 +1,113 @@
+{
+  "status": "OK",
+  "data": [
+    {
+      "symbol": "ADA-USD",
+      "type": "PERPETUAL",
+      "category": "Crypto",
+      "subCategory": "",
+      "assetName": "ADA",
+      "collateralAssetName": "USD",
+      "active": true,
+      "status": "ACTIVE",
+      "marketStats": {
+        "volume24h": "0",
+        "volumeBase24h": "0",
+        "priceChange24h": "0",
+        "priceChangePercentage24h": "0",
+        "low24h": "0.23370",
+        "high24h": "0.23370",
+        "lastPrice": "0.23370",
+        "markPrice": "0.21300952",
+        "indexPrice": "0.21300891",
+        "fundingRate": "0",
+        "nextFundingRate": 1792699200000,
+        "openInterest": "175260.398884640",
+        "openInterestBase": "822782.0"
+      },
+      "visibleOnUI": true,
+      "createdAt": 0
+    },
+    {
+      "symbol": "BTC-USD",
+      "type": "PERPETUAL",
+      "category": "Crypto",
+      "subCategory": "",
+      "assetName": "BTC",
+      "collateralAssetName": "USD",
+      "active": true,
+      "status": "ACTIVE",
+      "marketStats": {
+        "volume24h": "38330.850710",
+        "volumeBase24h": "0.46935",
+        "priceChange24h": "-1098.5",
+        "priceChangePercentage24h": "-1.333092240031843730",
+        "low24h": "80816.2",
+        "high24h": "82526.9",
+        "lastPrice": "81303.9",
+        "markPrice": "81305.01685977",
+        "indexPrice": "81354.57691678",
+        "fundingRate": "0.0000125000000000000",
+        "nextFundingRate": 1792699200000,
+        "openInterest": "1639205.079812857729",
+        "openInterestBase": "20.16118000000000000"
+      },
+      "visibleOnUI": true,
+      "createdAt": 0
+    },
+    {
+      "symbol": "ETH-USD",
+      "type": "PERPETUAL",
+      "category": "Crypto",
+      "subCategory": "",
+      "assetName": "ETH",
+      "collateralAssetName": "USD",
+      "active": true,
+      "status": "ACTIVE",
+      "marketStats": {
+        "volume24h": "2501.538250000000000",
+        "volumeBase24h": "1.025000000000000000",
+        "priceChange24h": "-111.52",
+        "priceChangePercentage24h": "-4.464014090144904330",
+        "low24h": "2371.28",
+        "high24h": "2500.22",
+        "lastPrice": "2386.68",
+        "markPrice": "2386.73879701",
+        "indexPrice": "2386.73879701",
+        "fundingRate": "0.0000125000000000000",
+        "nextFundingRate": 1792699200000,
+        "openInterest": "106107.2466986735700",
+        "openInterestBase": "44.45700000000000000"
+      },
+      "visibleOnUI": true,
+      "createdAt": 0
+    },
+    {
+      "symbol": "SOL-USD",
+      "type": "PERPETUAL",
+      "category": "Crypto",
+      "subCategory": "",
+      "assetName": "SOL",
+      "collateralAssetName": "USD",
+      "active": true,
+      "status": "ACTIVE",
+      "marketStats": {
+        "volume24h": "111.6045",
+        "volumeBase24h": "1.35",
+        "priceChange24h": "0.00",
+        "priceChangePercentage24h": "0",
+        "low24h": "82.67",
+        "high24h": "82.67",
+        "lastPrice": "82.67",
+        "markPrice": "103.52734405",
+        "indexPrice": "103.52734405",
+        "fundingRate": "0.0000125000000000000",
+        "nextFundingRate": 1792699200000,
+        "openInterest": "116435.1333061540000",
+        "openInterestBase": "1124.680000000000000"
+      },
+      "visibleOnUI": true,
+      "createdAt": 0
+    }
+  ]
+}

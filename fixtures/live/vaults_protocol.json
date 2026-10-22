@@ -1,0 +1,39 @@
+{
+  "count": 1,
+  "limit": 100,
+  "offset": 0,
+  "vaults": [
+    {
+      "vault_id": "3fd3ab0b-318b-4f99-9ad6-66e9e917bea8",
+      "type": "protocol",
+      "name": "Strike Liquidity Provider (SLP)",
+      "description": "Official liquidity vault powered by advanced market-making strategies",
+      "account_id": "vault_3fd3ab0b",
+      "leader_account_id": "019d06a7-bcfb-79a9-857e-cd54172ba144",
+      "leader_commission_bps": 0,
+      "total_shares": "895511.87430331",
+      "share_price": "1.157721198825494139",
+      "equity": "1036753.080680893272",
+      "wallet_balance": "1028509.723561783272",
+      "min_leader_share_pct": 5,
+      "lockup_days": 1,
+      "min_deposit": "100",
+      "allow_proportional_close": false,
+      "effective_vault_recovery_max_margin_ratio": "0.3",
+      "status": "active",
+      "is_verified": true,
+      "created_at": 1775400394200,
+      "apr": "25.6470",
+      "period_start_share_price": "1.13320859890997",
+      "period_start_timestamp": 1790103600,
+      "all_time_deposits": "3551560.933440210214",
+      "all_time_withdrawals": "2613777.280779119951",
+      "all_time_pnl": "98969.428019803009",
+      "return_24h": "0",
+      "period_return": "2.163114535055834940",
+      "depositors": 243,
+      "fee_earned": "0.000000000000000000",
+      "sharpe_ratio": "1.8189"
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "assets": {
+    "ADA": {
+      "asset_prec": 6,
+      "collateral_sale_discount": "0.02",
+      "credit_admission_ratio": "1",
+      "credit_collateral_conversion_discount": "0.05",
+      "credit_collateral_reference_loss": "0.3",
+      "encumbered_shares_by_vault": {
+        "3fd3ab0b-318b-4f99-9ad6-66e9e917bea8": "52793.37122571"
+      },
+      "open_lines": 39,
+      "price": "0.2130100106523809524",
+      "price_available": true,
+      "price_expires_at": 1792697301944,
+      "price_fresh": true,
+      "price_observed_at": 1792697291944,
+      "price_sequence_id": 1608855438,
+      "total_collateral_units": "288398.322399",
+      "total_debt_usd": "60148.88570839",
+      "yield_apr": "0",
+      "yield_apr_method": "none"
+    },
+    "LP_SUNDAE_USDCx_USDM": {
+      "asset_prec": 6,
+      "collateral_sale_discount": "0.005",
+      "credit_admission_ratio": "1",
+      "credit_collateral_conversion_discount": "0.01",
+      "credit_collateral_reference_loss": "0.1",
+      "encumbered_shares_by_vault": {
+        "3fd3ab0b-318b-4f99-9ad6-66e9e917bea8": "29518.26643729"
+      },
+      "open_lines": 5,
+      "price": "1.015112794448586276",
+      "price_available": true,
+      "price_expires_at": 1792697301944,
+      "price_fresh": true,
+      "price_observed_at": 1792697285496,
+      "price_sequence_id": 1608855438,
+      "total_collateral_units": "34986.354951",
+      "total_debt_usd": "34042.30700271640533",
+      "yield_apr": "0.02745271",
+      "yield_apr_computed_at": 1792697233802,
+      "yield_apr_method": "lp_reserve_growth_28d",
+      "yield_apr_window_days": 28
+    },
+    "SCALED_AAVE_V3_ETH_aUSDC": {
+      "asset_prec": 6,
+      "collateral_sale_discount": "0.001",
+      "credit_admission_ratio": "1",
+      "credit_collateral_conversion_discount": "0.0025",
+      "credit_collateral_reference_loss": "0.05",
+      "encumbered_shares_by_vault": {
+        "3fd3ab0b-318b-4f99-9ad6-66e9e917bea8": "1566.56805909"
+      },
+      "open_lines": 3,
+      "price": "1.190703980214551536",
+      "price_available": true,
+      "price_expires_at": 1792697327000,
+      "price_fresh": true,
+      "price_observed_at": 1792697267000,
+      "price_sequence_id": 1608855356,
+      "total_collateral_units": "1550.031723",
+      "total_debt_usd": "1807.35613557",
+      "yield_apr": "0.040842950986401899",
+      "yield_apr_computed_at": 1792697233802,
+      "yield_apr_method": "aave_liquidity_rate"
+    },
+    "sUSDrf": {
+      "asset_prec": 6,
+      "collateral_sale_discount": "0.005",
+      "credit_admission_ratio": "1",
+      "credit_collateral_conversion_discount": "0.01",
+      "credit_collateral_reference_loss": "0.1",
+      "encumbered_shares_by_vault": {
+        "3fd3ab0b-318b-4f99-9ad6-66e9e917bea8": "227895.80248392"
+      },
+      "open_lines": 35,
+      "price": "1.006124724030975000",
+      "price_available": true,
+      "price_expires_at": 1792697324214,
+      "price_fresh": true,
+      "price_observed_at": 1792697264214,
+      "price_sequence_id": 1608855356,
+      "total_collateral_units": "267583.939122",
+      "total_debt_usd": "263312.41305482",
+      "yield_apr": "0.11848782",
+      "yield_apr_computed_at": 1792697233802,
+      "yield_apr_method": "realfi_exchange_rate_growth_28d",
+      "yield_apr_window_days": 9
+    }
+  },
+  "effective_seq": 1598758128
+}

@@ -1,0 +1,64 @@
+{
+  "effective_seq": 1598758128,
+  "settings": {
+    "collateral_assets": {
+      "ADA": {
+        "asset_prec": 6,
+        "credit_admission_ratio": "1",
+        "credit_collateral_reference_loss": "0.3",
+        "credit_collateral_conversion_discount": "0.05",
+        "collateral_sale_discount": "0.02"
+      },
+      "LP_SUNDAE_USDCx_USDM": {
+        "asset_prec": 6,
+        "credit_admission_ratio": "1",
+        "credit_collateral_reference_loss": "0.1",
+        "credit_collateral_conversion_discount": "0.01",
+        "collateral_sale_discount": "0.005"
+      },
+      "SCALED_AAVE_V3_ETH_aUSDC": {
+        "asset_prec": 6,
+        "credit_admission_ratio": "1",
+        "credit_collateral_reference_loss": "0.05",
+        "credit_collateral_conversion_discount": "0.0025",
+        "collateral_sale_discount": "0.001"
+      },
+      "sUSDrf": {
+        "asset_prec": 6,
+        "credit_admission_ratio": "1",
+        "credit_collateral_reference_loss": "0.1",
+        "credit_collateral_conversion_discount": "0.01",
+        "collateral_sale_discount": "0.005"
+      }
+    },
+    "custody_asset_mappings": {
+      "cardano": {
+        "ADA": {
+          "custody_asset": "ADA",
+          "raw_amount_scale": 6
+        },
+        "LP_SUNDAE_USDCx_USDM": {
+          "custody_asset": "LP_SUNDAE_USDCx_USDM",
+          "raw_amount_scale": 6
+        },
+        "lovelace": {
+          "custody_asset": "ADA",
+          "raw_amount_scale": 6
+        },
+        "sUSDrf": {
+          "custody_asset": "sUSDrf",
+          "raw_amount_scale": 6
+        }
+      },
+      "ethereum": {
+        "AAVE_V3_aUSDC": {
+          "custody_asset": "SCALED_AAVE_V3_ETH_aUSDC",
+          "raw_amount_scale": 6
+        }
+      }
+    },
+    "approved_vaults": {
+      "3fd3ab0b-318b-4f99-9ad6-66e9e917bea8": true
+    }
+  }
+}

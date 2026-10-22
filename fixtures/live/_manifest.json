@@ -1,0 +1,123 @@
+{
+  "env": "mainnet",
+  "hasKeys": false,
+  "results": [
+    {
+      "name": "time",
+      "url": "https://api.strikefinance.org/v2/time",
+      "status": 200,
+      "ok": true,
+      "xCache": null,
+      "bytes": 28,
+      "fetchedAt": "2026-10-22T19:28:04.819Z"
+    },
+    {
+      "name": "exchangeInfo",
+      "url": "https://api.strikefinance.org/price/v2/exchangeInfo",
+      "status": 200,
+      "ok": true,
+      "xCache": "HIT",
+      "bytes": 27247,
+      "fetchedAt": "2026-10-22T19:28:06.481Z"
+    },
+    {
+      "name": "marketStats",
+      "url": "https://api.strikefinance.org/price/v2/marketStats",
+      "status": 200,
+      "ok": true,
+      "xCache": null,
+      "bytes": 20664,
+      "fetchedAt": "2026-10-22T19:28:07.028Z"
+    },
+    {
+      "name": "markPrice",
+      "url": "https://api.strikefinance.org/price/v2/markPrice",
+      "status": 200,
+      "ok": true,
+      "xCache": null,
+      "bytes": 4582,
+      "fetchedAt": "2026-10-22T19:28:07.548Z"
+    },
+    {
+      "name": "depth_BTC-USD",
+      "url": "https://api.strikefinance.org/price/v2/depth?symbol=BTC-USD",
+      "status": 200,
+      "ok": true,
+      "xCache": null,
+      "bytes": 881,
+      "fetchedAt": "2026-10-22T19:28:08.143Z"
+    },
+    {
+      "name": "depth_NVDA-USD",
+      "url": "https://api.strikefinance.org/price/v2/depth?symbol=NVDA-USD",
+      "status": 200,
+      "ok": true,
+      "xCache": null,
+      "bytes": 827,
+      "fetchedAt": "2026-10-22T19:28:08.715Z"
+    },
+    {
+      "name": "klines_NVDA-USD_1h_mark",
+      "url": "https://api.strikefinance.org/price/v2/klines?symbol=NVDA-USD&interval=1h&priceType=mark&limit=1500",
+      "status": 200,
+      "ok": true,
+      "xCache": "MISS",
+      "bytes": 200585,
+      "fetchedAt": "2026-10-22T19:28:09.126Z"
+    },
+    {
+      "name": "fee-tiers",
+      "url": "https://api.strikefinance.org/v2/fee-tiers",
+      "status": 200,
+      "ok": true,
+      "xCache": null,
+      "bytes": 1598,
+      "fetchedAt": "2026-10-22T19:28:12.686Z"
+    },
+    {
+      "name": "credit_settings",
+      "url": "https://api.strikefinance.org/v2/credit/settings",
+      "status": 200,
+      "ok": true,
+      "xCache": null,
+      "bytes": 1253,
+      "fetchedAt": "2026-10-22T19:28:13.472Z"
+    },
+    {
+      "name": "credit_collateral-assets",
+      "url": "https://api.strikefinance.org/v2/credit/collateral-assets",
+      "status": 200,
+      "ok": true,
+      "xCache": null,
+      "bytes": 2611,
+      "fetchedAt": "2026-10-22T19:28:13.785Z"
+    },
+    {
+      "name": "vaults_protocol",
+      "url": "https://api.strikefinance.org/v2/vaults?type=protocol",
+      "status": 200,
+      "ok": true,
+      "xCache": null,
+      "bytes": 1063,
+      "fetchedAt": "2026-10-22T19:28:14.464Z"
+    },
+    {
+      "name": "vault_slp",
+      "url": "https://api.strikefinance.org/v2/vault/3fd3ab0b-318b-4f99-9ad6-66e9e917bea8",
+      "status": 200,
+      "ok": true,
+      "xCache": null,
+      "bytes": 852,
+      "fetchedAt": "2026-10-22T19:28:15.214Z"
+    },
+    {
+      "name": "testnet_marketStats",
+      "url": "https://api-v2-testnet.strikefinance.org/price/v2/marketStats",
+      "status": 200,
+      "ok": true,
+      "xCache": null,
+      "bytes": 2336,
+      "fetchedAt": "2026-10-22T19:28:15.927Z"
+    }
+  ]
+}
