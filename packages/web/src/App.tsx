@@ -311,7 +311,7 @@ function Positions({ source, setSource, status }: { source: Source; setSource: (
                       <td className="num">{p.pGapPct === null ? "—" : `${p.pGapPct}%`}</td><td><span className={`band ${p.band}`}>{p.band}</span></td>
                       <td className="muted">{p.method}{p.method !== "N/A" ? ` n=${p.samples}` : ""}</td>
                       <td>{p.flags.map((f) => <span key={f} className="chip flag">{f}</span>)}</td>
-                      <td>{source !== "vault" && <button className="btn ghost" disabled={busy === p.symbol} onClick={() => protect(p.symbol)}>{busy === p.symbol ? "…" : "Protect"}</button>}</td>
+                      <td>{source !== "vault" && !status?.readOnly && <button className="btn ghost" disabled={busy === p.symbol} onClick={() => protect(p.symbol)}>{busy === p.symbol ? "…" : "Protect"}</button>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -423,12 +423,13 @@ export function App() {
         </div>
       </header>
       <main>
+        {status?.readOnly && <div className="demo-banner"><b>Public read-only demo.</b> Everything is computed live from Strike mainnet. The PAPER account was opened by the server on live prices (simulated fills, no real orders), and executing is disabled here. <a href="https://github.com/Stella112/apex">Run it locally</a> for the full propose → confirm → execute flow.</div>}
         {page === "overview" && <Overview status={status} go={(p) => setPage(p as Page)} />}
         {page === "radar" && <Radar />}
         {page === "circuit" && <Circuit source={source} status={status} />}
         {page === "positions" && <Positions source={source} setSource={setSource} status={status} />}
         {page === "credit" && <Credit />}
-        {page === "vault" && <Vault />}
+        {page === "vault" && <Vault readOnly={status?.readOnly === true} />}
         {page === "log" && <Log />}
         <p className="disclaimer">{DISCLAIMER}</p>
       </main>

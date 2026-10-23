@@ -1,0 +1,14 @@
+# Render blueprint: public read-only Apex demo (no secrets needed; never add Strike keys here).
+services:
+  - type: web
+    name: apex
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/status
+    envVars:
+      - key: APEX_PUBLIC_DEMO
+        value: "1"
+      - key: STRIKE_ENV
+        value: mainnet
+      - key: APEX_MODE
+        value: paper

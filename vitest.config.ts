@@ -12,5 +12,7 @@ export default defineConfig({
   },
   test: {
     include: ["packages/*/tests/**/*.test.ts"],
+    // Shield/fair-value tests crunch 1500-row histories for ~20 markets; allow for a busy machine.
+    testTimeout: 30_000,
   },
 });

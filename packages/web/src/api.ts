@@ -11,7 +11,7 @@ const post = <T,>(path: string, b: unknown) => j<T>(path, { method: "POST", body
 
 export type Source = "own" | "paper" | "vault";
 export type { Status as ApexStatus };
-export interface Status { mode: "paper" | "live"; apexMode: string; hasKeys: boolean; env: string; defaultSource: Source; vaultId: string | null }
+export interface Status { readOnly?: boolean; mode: "paper" | "live"; apexMode: string; hasKeys: boolean; env: string; defaultSource: Source; vaultId: string | null }
 
 export const api = {
   status: () => j<Status>("/api/status"),

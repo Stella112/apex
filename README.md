@@ -158,6 +158,16 @@ Open <http://127.0.0.1:8787>. Seed the paper account for the demo:
 pnpm demo:seed
 ```
 
+### Public read-only demo (hosted link)
+
+`APEX_PUBLIC_DEMO=1` turns the dashboard server into a safe public demo (the `Dockerfile` and `render.yaml` set it). In this mode Apex:
+- refuses to start if `STRIKE_API_*` keys or `APEX_MODE=live` are present;
+- returns 403 on every write route (execute, propose, policy, vault tick) and rate-limits each IP;
+- seeds its PAPER account once on live prices through the normal propose → referee → execute flow, and runs the PAPER Mandate Vault every 30 minutes;
+- shows a "public read-only demo" banner.
+
+Deploy on Render: **New → Blueprint** → pick this repo (it reads `render.yaml`). No secrets are needed, and you should never add Strike keys to a public host. Locally: `docker build -t apex .` then `docker run -p 8787:8787 apex`.
+
 ### Read-only live checks
 
 ```bash

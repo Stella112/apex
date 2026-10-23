@@ -762,7 +762,7 @@ export class Apex {
     };
   }
 
-  async creditLineHealth(input: { asset: string; collateralUnits: string; debtUsd: string; encumberedShares: string; vaultId?: string }) {
+  async creditLineHealth(input: { asset: string; collateralUnits: string; debtUsd: string; encumberedShares: string; vaultId?: string }, opts: { log?: boolean } = {}) {
     const i = await this.creditInputs(input.asset, input.vaultId);
     const q = dec(input.collateralUnits), Dt = dec(input.debtUsd), s = dec(input.encumberedShares);
     const P = dec(i.price), S = dec(i.sharePrice);
@@ -784,7 +784,7 @@ export class Apex {
       fixToCompletionTargets: { alreadyMeets: fix.alreadyMeets, repayUsd: fix.repayUsd.toFixed(2), orAddCollateralUnits: fix.addCollateralUnits.toString() },
       warnings: i.priceFresh ? [] : ["STALE: collateral price is not fresh (price_fresh=false or expired); numbers shown, do not act on them"],
     };
-    this.log.append("credit_health", "scenario", { inputs: out.inputs, health: out.health, values: out.values });
+    if (opts.log !== false) this.log.append("credit_health", "scenario", { inputs: out.inputs, health: out.health, values: out.values });
     return out;
   }
 

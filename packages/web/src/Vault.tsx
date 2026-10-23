@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { type LogEntry, type VaultStatus, api } from "./api";
 
-export function Vault() {
+export function Vault({ readOnly = false }: { readOnly?: boolean }) {
   const [v, setV] = useState<VaultStatus | null>(null);
   const [d, setD] = useState<LogEntry[]>([]);
   const [busy, setBusy] = useState(false);
@@ -45,7 +45,7 @@ export function Vault() {
                 <dt>Signal</dt><dd>|mark − implied| &gt; {m.signal.deviationMultipleOfHalfWidth} × half-width</dd>
                 <dt>Session rule</dt><dd>only while closed; flat {m.weekend.flatMinutesBeforeOpen} min before open</dd>
               </dl>
-              <div style={{ marginTop: 12 }}><button className="btn" disabled={busy} onClick={tick}>{busy ? "Evaluating…" : "Run mandate check now"}</button></div>
+              {readOnly ? <p className="basis">The server runs this mandate check every 30 minutes; decisions appear below.</p> : <div style={{ marginTop: 12 }}><button className="btn" disabled={busy} onClick={tick}>{busy ? "Evaluating…" : "Run mandate check now"}</button></div>}
               <p className="basis">Source: config/mandate.json (published in the repo).</p>
             </div>
             <div className="card">

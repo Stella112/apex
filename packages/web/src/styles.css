@@ -177,3 +177,5 @@ button.link { background: none; border: 0; color: var(--accent); cursor: pointer
   .feed { grid-template-columns: 40px 1fr auto; }
   .feed > :last-child { display: none; }
 }
+
+.demo-banner { margin: 0 0 16px; padding: 10px 14px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--info) 45%, transparent); background: color-mix(in srgb, var(--info) 10%, transparent); font-size: 13px; }
