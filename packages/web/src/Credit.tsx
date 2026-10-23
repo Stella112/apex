@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { type CreditGrid, type CreditHealth, api } from "./api";
+import { ModeBadge, PageHead, Term } from "./ui";
 
 function color(h: number, recovery: boolean): string {
   if (recovery) return "color-mix(in srgb, var(--danger) 55%, transparent)";
@@ -31,8 +32,12 @@ export function Credit() {
   };
   return (
     <>
-      <h1>Credit Line Copilot <span className="badge ESTIMATE"><span className="dot" />ESTIMATE</span></h1>
-      <p className="sub">Borrow-and-Earn health with the exact formulas from Strike's docs. Strike has no per-user credit-line endpoint, so you enter the line values; collateral and SLP share prices are read live.</p>
+      <PageHead
+        title="Credit line health"
+        badge={<ModeBadge mode="ESTIMATE" />}
+        what={<>Strike's Borrow-and-Earn lets you borrow dollars against a coin like ADA. This page tells you how safe your line is, and the exact price at which Strike would start recovering it. Strike has no per-user credit endpoint, so you type your line's numbers; the prices are read live.</>}
+        tip="press Check health with the example numbers (800 ADA, $100 debt, 86.4 vault shares)."
+      />
       <div className="grid cols-2">
         <form className="card stack" onSubmit={run}>
           <h2>Your line (user-entered)</h2>
@@ -49,6 +54,16 @@ export function Credit() {
           {h && (
             <>
               {h.warnings.map((w) => <p key={w} className="err">{w}</p>)}
+              <div className={`vhero ${h.health.state === "ACTIVE" ? "ok" : "bad"}`}>
+                <div className="vicon" aria-hidden="true">{h.health.state === "ACTIVE" ? "✓" : "!"}</div>
+                <div>
+                  <div className="vtitle">{h.health.state === "ACTIVE" ? "Your line is healthy" : "Your line is in recovery"}</div>
+                  <div className="vsub">
+                    <Term k="health">Credit health</Term> is {h.health.credit} (100 is the line). Strike would start recovering it if {h.inputs.asset} fell to about <b>${Number(h.recoveryBoundary.collateralPrice).toFixed(4)}</b>, which is {h.recoveryBoundary.distancePct}% below today's ${Number(h.live.collateralPrice).toFixed(4)}.
+                    {h.fixToCompletionTargets.alreadyMeets ? " No top-up is needed." : ` To get comfortably clear, repay about $${h.fixToCompletionTargets.repayUsd} or add about ${h.fixToCompletionTargets.orAddCollateralUnits} ${h.inputs.asset}.`}
+                  </div>
+                </div>
+              </div>
               <div className="grid cols-4">
                 <div className="card kpi"><div className="k">Credit health</div><div className="v" style={{ color: h.health.state === "RECOVERY" ? "var(--danger)" : Number(h.health.credit) < 112.28 ? "var(--warn)" : "var(--ok)" }}>{h.health.credit}</div><div className="k">{h.health.state}</div></div>
                 <div className="card kpi"><div className="k">Joint risk J</div><div className="v">{Number(h.values.J).toFixed(4)}</div><div className="k">recovery at ≥ 1</div></div>

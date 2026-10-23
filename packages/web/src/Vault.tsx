@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { type LogEntry, type VaultStatus, api } from "./api";
+import { ModeBadge, PageHead } from "./ui";
 
 export function Vault({ readOnly = false }: { readOnly?: boolean }) {
   const [v, setV] = useState<VaultStatus | null>(null);
@@ -22,8 +23,12 @@ export function Vault({ readOnly = false }: { readOnly?: boolean }) {
   const m = v?.mandate;
   return (
     <>
-      <h1>Mandate Vault <span className="badge PAPER"><span className="dot" />PAPER</span></h1>
-      <p className="sub">A published, rule-governed strategy. Every candidate trade passes Circuit and the Risk Referee with the mandate as policy, and every decision is logged with its reasoning. Simulated fills on live Strike prices; no real vault is traded.</p>
+      <PageHead
+        title="Mandate Vault"
+        badge={<ModeBadge mode="PAPER" />}
+        what={<>A vault that runs by a written rulebook (the mandate below) instead of by gut feel. While a stock's real market is closed, it only trades when the perp drifts unusually far from its estimated fair price, never holds through the reopen, and checks every trade with the Risk Referee. It is simulated on live prices: no real vault is traded.</>}
+        tip={<>read the <b>Decisions</b> table. Each row says in plain words why the vault did, or did not, trade.</>}
+      />
       {err && <p className="err">{err}</p>}
       {v && m && (
         <div className="grid">
