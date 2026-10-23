@@ -166,7 +166,9 @@ pnpm demo:seed
 - seeds its PAPER account once on live prices through the normal propose → referee → execute flow, and runs the PAPER Mandate Vault every 30 minutes;
 - shows a "public read-only demo" banner.
 
-Deploy on Render: **New → Blueprint** → pick this repo (it reads `render.yaml`). No secrets are needed, and you should never add Strike keys to a public host. Locally: `docker build -t apex .` then `docker run -p 8787:8787 apex`.
+**Deploy on Vercel (static dashboard + one serverless function):** import the repo at vercel.com/new and leave every setting as detected. `vercel.json` sets the build, the output directory and a 60 s function limit; `api/[...path].js` is the function and forces public read-only mode. No environment variables are required (never add Strike keys). Serverless instances are ephemeral, so each instance seeds its own PAPER account and runs the PAPER vault on first use. The first load after idle takes up to about 25 s while it reads Strike's history. Optional: set `LOG_SIGNING_KEY` to any 64-hex string so every instance signs its log with the same key.
+
+Deploy on Render instead: **New → Blueprint** → pick this repo (it reads `render.yaml`). Locally: `docker build -t apex .` then `docker run -p 8787:8787 apex`.
 
 ### Read-only live checks
 
