@@ -2,6 +2,9 @@
 
 **Apex is an AI risk copilot and MCP service for [Strike Finance](https://strikefinance.org).** Traders analyze Strike's markets (crypto, stocks, indices, commodities) from Claude, simulate a trade's risk before it exists (**Circuit**), protect positions against weekend and closed-session gaps (**Weekend Shield**), monitor Borrow-and-Earn credit lines (**Credit Line Copilot**), and watch a rule-governed paper vault (**Mandate Vault**). A trade-only API wallet plus a deterministic **Risk Referee** enforce the user's limits. Every decision is written to a hash-chained, signed log.
 
+**Live demo:** **[apex-alpha-pied.vercel.app](https://apex-alpha-pied.vercel.app/)** (public, read-only: live Strike mainnet prices, PAPER account, no keys, nothing can be sent to Strike)
+**Demo video (2:53):** [docs/apex-demo.mp4](docs/apex-demo.mp4)
+
 > Built for the Strike Hackathon (Oct 21–23, 2026). Everything below is labeled truthfully: **Working**, **Paper** or **Roadmap**. Every number Apex shows carries a label: `LIVE` (straight from Strike), `ESTIMATE` (computed by Apex), `SCENARIO` (stress) or `PAPER` (simulated account).
 
 ## The problem
@@ -26,7 +29,8 @@
 | **Fair-value bands** | **Working** (ESTIMATE) | For stock/index perps while the cash market is closed: β on the NAS100/SP500 perp from weekday 1h returns, implied price, ±2σ band, R² and sample counts. Shows "no reliable band" when R² < 0.2. |
 | **Mandate Vault** | **Paper** | A published mandate (`config/mandate.json`): weekend reversion toward fair value, always flat before the open, drawdown kill-switch. Every candidate goes through Circuit + referee; paper fills; template reasoning in the signed log. |
 | **Decision log** | **Working** | Append-only JSONL, `hash = sha256(prevHash + canonicalJSON(entry))`, Ed25519-signed with a key separate from the trading key. `verify_log` recomputes the chain and every signature. |
-| Builder codes, Telegram alerts, on-chain log anchoring, hosted deployment | **Roadmap** | See below. |
+| **Hosted public demo** | **Working** (read-only, PAPER) | [apex-alpha-pied.vercel.app](https://apex-alpha-pied.vercel.app/): the full dashboard on Vercel with live mainnet data. Write routes return 403 and the server refuses to start with Strike keys. |
+| Builder codes, Telegram alerts, on-chain log anchoring | **Roadmap** | See below. |
 
 ## How Apex uses Strike
 
@@ -166,7 +170,7 @@ pnpm demo:seed
 - seeds its PAPER account once on live prices through the normal propose → referee → execute flow, and runs the PAPER Mandate Vault every 30 minutes;
 - shows a "public read-only demo" banner.
 
-**Deploy on Vercel (static dashboard + one serverless function):** import the repo at vercel.com/new and leave every setting as detected. `vercel.json` sets the build, the output directory and a 60 s function limit; `api/[...path].js` is the function and forces public read-only mode. No environment variables are required (never add Strike keys). Serverless instances are ephemeral, so each instance seeds its own PAPER account and runs the PAPER vault on first use. The first load after idle takes up to about 25 s while it reads Strike's history. Optional: set `LOG_SIGNING_KEY` to any 64-hex string so every instance signs its log with the same key.
+**Deploy on Vercel (static dashboard + one serverless function):** live at **[apex-alpha-pied.vercel.app](https://apex-alpha-pied.vercel.app/)**. Import the repo at vercel.com/new and set **Application Preset → Other** (Vercel may suggest "Services" because it sees the Dockerfile; ignore that). `vercel.json` sets the build, the output directory, a 60 s function limit and a rewrite that sends every `/api/*` path to `api/apex.js`, the one function, which forces public read-only mode. No environment variables are required (never add Strike keys). Serverless instances are ephemeral, so each instance seeds its own PAPER account and runs the PAPER vault on first use. The first load after idle takes up to about 25 s while it reads Strike's history. Optional: set `LOG_SIGNING_KEY` to any 64-hex string so every instance signs its log with the same key.
 
 Deploy on Render instead: **New → Blueprint** → pick this repo (it reads `render.yaml`). Locally: `docker build -t apex .` then `docker run -p 8787:8787 apex`.
 
@@ -188,7 +192,7 @@ Every scene shows on screen whether it is LIVE, PAPER or SCENARIO. Full script: 
 4. **Dashboard → Credit:** live ADA and SLP prices, health score, recovery-boundary ADA price, fix amount, heatmap.
 5. **Dashboard → Vault:** the published mandate, its logged decisions ("no trade: mark inside the band…"), paper equity and drawdown.
 
-Demo video: _link added at submission_.
+**Demo video (2:53, voiceover + captions):** [docs/apex-demo.mp4](docs/apex-demo.mp4). It is built from real dashboard footage on live mainnet data; the source is in [`demo-video/`](demo-video/). **Try it yourself:** [apex-alpha-pied.vercel.app](https://apex-alpha-pied.vercel.app/).
 
 ## Business model
 
