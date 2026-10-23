@@ -18,9 +18,21 @@ const HOUR = 3600_000;
 const klineCache = new Map<string, { at: number; rows: Kline[] }>();
 
 /** 1h mark klines, paginated backwards (≤1500 rows per call, CLAUDE.md §4.3), cached 10 min. */
-export async function loadMarkHistory(client: StrikeClient, symbol: string, maxPages = 3, now = Date.now()): Promise<Kline[]> {
+const klineInflight = new Map<string, Promise<Kline[]>>();
+
+/** Concurrent callers for the same symbol share one fetch (a cold serverless instance gets many parallel requests). */
+export function loadMarkHistory(client: StrikeClient, symbol: string, maxPages = 3, now = Date.now()): Promise<Kline[]> {
   const hit = klineCache.get(symbol);
-  if (hit && now - hit.at < 600_000) return hit.rows;
+  if (hit && now - hit.at < 600_000) return Promise.resolve(hit.rows);
+  let p = klineInflight.get(symbol);
+  if (!p) {
+    p = fetchMarkHistory(client, symbol, maxPages, now).finally(() => klineInflight.delete(symbol));
+    klineInflight.set(symbol, p);
+  }
+  return p;
+}
+
+async function fetchMarkHistory(client: StrikeClient, symbol: string, maxPages: number, now: number): Promise<Kline[]> {
   let rows: Kline[] = [];
   let endTime: number | undefined;
   for (let page = 0; page < maxPages; page++) {

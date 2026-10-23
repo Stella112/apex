@@ -29,5 +29,6 @@
     "@apex/config": "workspace:*",
     "@apex/core": "workspace:*",
     "dotenv": "^18.0.9"
-  }
+  },
+  "packageManager": "pnpm@10.34.6"
 }
