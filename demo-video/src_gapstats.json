@@ -1,0 +1,182 @@
+[
+ {
+  "symbol": "MINIMAX",
+  "underlying": "unknown",
+  "p5": 31,
+  "p10": 15.4,
+  "method": "MODELED",
+  "samples": 0,
+  "worst": null
+ },
+ {
+  "symbol": "SKHYNIX",
+  "underlying": "unknown",
+  "p5": 29.3,
+  "p10": 13.2,
+  "method": "MODELED",
+  "samples": 0,
+  "worst": null
+ },
+ {
+  "symbol": "ZHIPU",
+  "underlying": "unknown",
+  "p5": 28.4,
+  "p10": 12,
+  "method": "MODELED",
+  "samples": 0,
+  "worst": null
+ },
+ {
+  "symbol": "SPCX",
+  "underlying": "unknown",
+  "p5": 25.7,
+  "p10": 9,
+  "method": "MODELED",
+  "samples": 0,
+  "worst": null
+ },
+ {
+  "symbol": "UNITREE",
+  "underlying": "unknown",
+  "p5": 23.2,
+  "p10": 6.6,
+  "method": "MODELED",
+  "samples": 0,
+  "worst": null
+ },
+ {
+  "symbol": "AAOI",
+  "underlying": "closed",
+  "p5": 20.8,
+  "p10": 4.2,
+  "method": "EMPIRICAL",
+  "samples": 48,
+  "worst": "-16.35"
+ },
+ {
+  "symbol": "CXMT",
+  "underlying": "unknown",
+  "p5": 20.7,
+  "p10": 4.7,
+  "method": "MODELED",
+  "samples": 0,
+  "worst": null
+ },
+ {
+  "symbol": "SNDK",
+  "underlying": "closed",
+  "p5": 19.5,
+  "p10": 2.4,
+  "method": "EMPIRICAL",
+  "samples": 82,
+  "worst": "-14.55"
+ },
+ {
+  "symbol": "DRAM",
+  "underlying": "unknown",
+  "p5": 16.9,
+  "p10": 2.4,
+  "method": "MODELED",
+  "samples": 0,
+  "worst": null
+ },
+ {
+  "symbol": "MU",
+  "underlying": "closed",
+  "p5": 10.8,
+  "p10": 1.2,
+  "method": "EMPIRICAL",
+  "samples": 83,
+  "worst": "-10.04"
+ },
+ {
+  "symbol": "CRCL",
+  "underlying": "closed",
+  "p5": 8.1,
+  "p10": 0,
+  "method": "EMPIRICAL",
+  "samples": 37,
+  "worst": "-7.87"
+ },
+ {
+  "symbol": "COIN",
+  "underlying": "closed",
+  "p5": 2.5,
+  "p10": 0,
+  "method": "EMPIRICAL",
+  "samples": 40,
+  "worst": "-6.12"
+ },
+ {
+  "symbol": "WTI",
+  "underlying": "open",
+  "p5": 1.5,
+  "p10": 0,
+  "method": "EMPIRICAL",
+  "samples": 131,
+  "worst": "-5.93"
+ },
+ {
+  "symbol": "GOOGL",
+  "underlying": "closed",
+  "p5": 0,
+  "p10": 0,
+  "method": "EMPIRICAL",
+  "samples": 47,
+  "worst": "-2.59"
+ },
+ {
+  "symbol": "NAS100",
+  "underlying": "closed",
+  "p5": 0,
+  "p10": 0,
+  "method": "EMPIRICAL",
+  "samples": 67,
+  "worst": "-1.83"
+ },
+ {
+  "symbol": "NVDA",
+  "underlying": "closed",
+  "p5": 0,
+  "p10": 0,
+  "method": "EMPIRICAL",
+  "samples": 97,
+  "worst": "-3.49"
+ },
+ {
+  "symbol": "SP500",
+  "underlying": "closed",
+  "p5": 0,
+  "p10": 0,
+  "method": "EMPIRICAL",
+  "samples": 47,
+  "worst": "-0.79"
+ },
+ {
+  "symbol": "TSLA",
+  "underlying": "closed",
+  "p5": 0,
+  "p10": 0,
+  "method": "EMPIRICAL",
+  "samples": 63,
+  "worst": "-4.42"
+ },
+ {
+  "symbol": "XAG",
+  "underlying": "open",
+  "p5": 0,
+  "p10": 0,
+  "method": "EMPIRICAL",
+  "samples": 134,
+  "worst": "-0.52"
+ },
+ {
+  "symbol": "XAU",
+  "underlying": "open",
+  "p5": 0,
+  "p10": 0,
+  "method": "EMPIRICAL",
+  "samples": 133,
+  "worst": "-0.47"
+ }
+]

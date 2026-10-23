@@ -1,0 +1,10 @@
+import { StrikeClient, loadMarkHistory, windowReturns } from "file:///C:/STRIKE/apex/packages/core/dist/index.js";
+import { sessionFor } from "file:///C:/STRIKE/apex/config/dist/index.js";
+import { writeFileSync } from "node:fs";
+const c = new StrikeClient({ env: "mainnet" });
+const k = await loadMarkHistory(c, "NVDA-USD", 3);
+const w = windowReturns(k, sessionFor("NVDA-USD"));
+const rets = w.map((x) => ({ ret: x.ret, hours: x.hours, close: x.close }));
+writeFileSync("C:/STRIKE/video/src_nvda.json", JSON.stringify(rets));
+const r = rets.map((x) => x.ret);
+console.log("windows", rets.length, "min", Math.min(...r).toFixed(4), "max", Math.max(...r).toFixed(4), "≤-5%:", r.filter((x) => x <= -0.05).length);

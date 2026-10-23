@@ -1,0 +1,13 @@
+import puppeteer from "puppeteer-core";
+const b = await puppeteer.launch({ executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", args: ["--hide-scrollbars"], defaultViewport: { width: 1440, height: 900, deviceScaleFactor: 2 } });
+const p = await b.newPage();
+p.setDefaultTimeout(60000);
+await p.goto("http://127.0.0.1:8790/#vault", { waitUntil: "networkidle2" });
+await p.reload({ waitUntil: "networkidle2" });
+await p.waitForFunction(() => document.querySelectorAll("tbody tr").length >= 3);
+await new Promise((r) => setTimeout(r, 800));
+await p.evaluate(() => window.scrollTo(0, 330));
+await new Promise((r) => setTimeout(r, 500));
+await p.screenshot({ path: "shots/vault-top.png" });
+await b.close();
+console.log("ok");

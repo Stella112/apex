@@ -1,0 +1,38 @@
+[
+  {
+    "id": "s1",
+    "text": "Every weekend, the stock market closes. On Strike, the perps for NVIDIA, Tesla, the Nasdaq and gold keep trading. If the price gaps while the real market is shut, a leveraged position can be liquidated before anyone reacts. And before you click buy, you have no way to see how likely that is."
+  },
+  {
+    "id": "s2",
+    "text": "Apex is a risk desk for Strike. It checks every trade before you place it, measures weekend gap risk from Strike's own price history, and acts only when you confirm."
+  },
+  {
+    "id": "s3",
+    "text": "Everything you see is live from Strike mainnet, and you don't have to trust our math. Apex recomputes liquidation prices from Strike's margin rules. On thirty-three of thirty-three real positions, it matches Strike's own number."
+  },
+  {
+    "id": "s4",
+    "text": "Try a thousand dollars of NVIDIA, long, at ten times leverage. Apex blocks it, and says why in plain words: leverage is too high while the US market is closed, the position is too big, and liquidation would be only nine percent away. Then it offers the largest version that passes every rule: a little over two NVIDIA at three times, with liquidation more than thirty percent away. These twelve rules are plain code. No AI decides what's safe."
+  },
+  {
+    "id": "s5",
+    "text": "For every stock and index perp, Apex finds each gap between a market's close and its next open in Strike's hourly history, and works out the chance that a gap alone reaches your liquidation price. For NVIDIA, that's ninety-seven real gaps. Where a market's hours are unknown, Apex says so, models the risk, and assumes it's closed."
+  },
+  {
+    "id": "s6",
+    "text": "When a position needs protection, Apex proposes a stop-loss, explains it in one sentence, and waits. Nothing happens until you confirm. Orders are reduce-only. This is a paper account on live prices. Every step lands in a signed audit log, and one click re-verifies the whole chain."
+  },
+  {
+    "id": "s7",
+    "text": "The same engine is exposed over MCP, so Claude or any MCP client can use it, with twenty-one tools. Ask for your weekend risk, simulate a trade, get a proposal, and confirm it, all in conversation."
+  },
+  {
+    "id": "s8",
+    "text": "There's also a credit-line checker built from Strike's published formulas, with every documentation example passing as a test, and a paper vault that explains each decision it makes."
+  },
+  {
+    "id": "s9",
+    "text": "Apex is open source, with one hundred eighty tests. Today it runs as paper trading on live mainnet prices. The real-order path is built, but it hasn't been run on mainnet. Its limits are enforced by Strike key permissions and the referee, not by a smart contract. And this isn't financial advice."
+  }
+]
